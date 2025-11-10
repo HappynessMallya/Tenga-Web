@@ -1,0 +1,25 @@
+# Netlify configuration for Tenga Web App
+
+# Redirect API calls to backend (proxies /api/* to your backend)
+[[redirects]]
+  from = "/api/*"
+  to = "https://lk-7ly1.onrender.com/api/:splat"
+  status = 200
+  force = true
+  headers = { X-From = "Netlify" }
+
+# SPA fallback - serve index.html for all routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Build settings
+[build]
+  command = "npm run web:build"
+  publish = "dist"
+
+# Environment variables (set these in Netlify dashboard)
+# EXPO_PUBLIC_API_BASE_URL=/api (use relative path for proxy)
+# NODE_ENV=production
+

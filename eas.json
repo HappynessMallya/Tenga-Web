@@ -1,0 +1,68 @@
+{
+  "cli": {
+    "version": ">= 5.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Debug"
+      },
+      "channel": "development",
+      "node": "20.19.4",
+      "env": {
+        "NODE_ENV": "development",
+        "EXPO_PUBLIC_API_BASE_URL": "https://lk-7ly1.onrender.com/api",
+        "EXPO_PUBLIC_API_URL": "https://api.tengalaundry.com"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "channel": "preview",
+      "node": "20.19.4",
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://lk-7ly1.onrender.com/api",
+        "EXPO_PUBLIC_API_URL": "https://lk-7ly1.onrender.com/api"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "channel": "production",
+      "node": "20.19.4",
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://lk-7ly1.onrender.com/api",
+        "EXPO_PUBLIC_API_URL": "https://lk-7ly1.onrender.com/api"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./credentials/google-service-account.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "1234567890",
+        "appleTeamId": "ABCDEFGHIJ"
+      }
+    }
+  }
+}
