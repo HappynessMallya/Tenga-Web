@@ -54,15 +54,28 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       }
 
       console.log('Location data saved:', locationData);
+      
+      // Show success message if reverse geocoding used fallback
+      if (locationData.city === 'Unknown' || locationData.streetName.includes('Location at')) {
+        Alert.alert(
+          'Location Retrieved',
+          'We got your coordinates, but couldn\'t find the exact address. You can still proceed with your order using these coordinates.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error: any) {
       console.error('Location error:', error);
-      setLocationError(error.message || 'Failed to get location');
+      const errorMessage = error.message || 'Failed to get location';
+      setLocationError(errorMessage);
       
-      Alert.alert(
-        'Location Error',
-        error.message || 'Failed to get your current location. Please try again.',
-        [{ text: 'OK' }]
-      );
+      // Only show alert for critical errors (permission denied, etc.)
+      if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+        Alert.alert(
+          'Location Permission Required',
+          'Please allow location access to use this feature. You can enable it in your device settings.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setIsGettingLocation(false);
     }

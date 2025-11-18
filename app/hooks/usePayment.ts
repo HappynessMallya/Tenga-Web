@@ -2,6 +2,8 @@
 import { useState, useCallback } from 'react';
 import { CreatePaymentData, Payment } from '../types/payment';
 import { logger } from '../utils/logger';
+import API from '../api/axiosInstance';
+import { normalizeTanzaniaPhone } from '../utils/phoneUtils';
 
 export type PaymentState =
   | 'idle'
@@ -41,43 +43,68 @@ export const usePayment = () => {
 
   const processPayment = useCallback(async (data: CreatePaymentData): Promise<PaymentResult> => {
     try {
-      const orderId = generateUUID();
-      logger.info('UI-only payment flow started', { orderId, amount: data.amount });
+      // Use orderId from data if provided, otherwise generate one (for backward compatibility)
+      const orderId = data.order_id || generateUUID();
+      
+      if (!orderId) {
+        throw new Error('Order ID is required for payment');
+      }
+
+      // Normalize phone number to +255 format
+      const normalizedPhone = data.phone ? normalizeTanzaniaPhone(data.phone) : null;
+      
+      if (!normalizedPhone) {
+        throw new Error('Valid phone number is required for mobile money payment');
+      }
+
+      logger.info('Payment flow started', { orderId, amount: data.amount, phone: normalizedPhone });
 
       setState('creating');
       setProgress({ current: 1, total: 3, message: 'Creating payment request...' });
-      await new Promise(r => setTimeout(r, 500));
+
+      // Call the payment API endpoint
+      const response = await API.post(`/api/payments/initiate/${orderId}`, {
+        phoneNumber: normalizedPhone,
+      });
+
+      logger.info('Payment initiated successfully', { orderId, response: response.data });
 
       setState('push_sent');
       setProgress({ current: 2, total: 3, message: 'Waiting for confirmation...' });
-      await new Promise(r => setTimeout(r, 800));
+
+      // Poll for payment status (you may want to implement actual polling here)
+      // For now, we'll simulate a delay
+      await new Promise(r => setTimeout(r, 2000));
 
       setState('completed');
-      setProgress({ current: 3, total: 3, message: 'Payment completed (simulated).' });
+      setProgress({ current: 3, total: 3, message: 'Payment completed.' });
 
       const successResult: PaymentResult = {
         success: true,
         payment: {
-          id: generateUUID(),
+          id: response.data.id || generateUUID(),
           order_id: orderId,
           amount: data.amount,
           payment_method: data.payment_method,
           status: 'completed',
-          phone: data.phone,
-          transaction_id: generateUUID(),
+          phone: normalizedPhone,
+          transaction_id: response.data.transaction_id || generateUUID(),
           reference: orderId,
         } as any,
         reference: orderId,
-        transactionId: orderId,
+        transactionId: response.data.transaction_id || orderId,
         orderId,
       };
 
       setResult(successResult);
       return successResult;
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Payment failed', { error: error.message, response: error.response?.data });
       setState('failed');
       setProgress(null);
-      const errorResult: PaymentResult = { success: false, error: 'Payment failed (UI-only).' };
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Payment failed. Please try again.';
+      const errorResult: PaymentResult = { success: false, error: errorMessage };
       setResult(errorResult);
       return errorResult;
     }

@@ -1,34 +1,34 @@
 {
   "buildCommand": "npm run web:build",
   "outputDirectory": "dist",
+  "build": {
+    "env": {
+      "EXPO_PUBLIC_API_BASE_URL": "/api"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "https://lk-7ly1.onrender.com/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         },
         {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+          "key": "X-Frame-Options",
+          "value": "DENY"
         },
         {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
         }
       ]
     }
   ]
 }
-

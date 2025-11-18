@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Alert,
   Modal,
+  TextInput,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,37 +22,8 @@ import { orderCreationService } from '../services/orderCreationService';
 import { orderService } from '../services/orderService';
 import { CreateOrderRequest } from '../types/orderCreation';
 import { formatCurrency } from '../utils/orderCalculations';
-
-const PAYMENT_METHODS = [
-  {
-    id: 'mpesa',
-    name: 'M-Pesa',
-    icon: 'phone-portrait',
-    color: '#00A86B',
-    description: 'Pay with M-Pesa mobile money',
-  },
-  {
-    id: 'airtel',
-    name: 'Airtel Money',
-    icon: 'phone-portrait',
-    color: '#E60012',
-    description: 'Pay with Airtel Money',
-  },
-  {
-    id: 'tigo',
-    name: 'Tigo Pesa',
-    icon: 'phone-portrait',
-    color: '#FF6B00',
-    description: 'Pay with Tigo Pesa',
-  },
-  {
-    id: 'mixx',
-    name: 'Mixx by Yas',
-    icon: 'card',
-    color: '#9334ea',
-    description: 'Pay with Mixx by Yas',
-  },
-];
+import { detectTanzaniaNetwork, normalizeTanzaniaPhone, isValidTanzaniaPhone } from '../utils/phoneUtils';
+import API from '../api/axiosInstance';
 
 export default function PaymentScreen() {
   const { colors } = useTheme();
@@ -73,16 +45,19 @@ export default function PaymentScreen() {
     getTotalPrice,
   } = useGarmentConfig();
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
+  const [normalizedPhone, setNormalizedPhone] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+  const [paymentResponse, setPaymentResponse] = useState<any>(null);
 
   // Calculate totals
   const total = getTotalPrice();
   const selectedItemsCount = selectedGarments.reduce((sum, item) => sum + item.quantity, 0);
   const selectedServicesCount = new Set(selectedGarments.map(garment => garment.serviceType)).size;
-  const canProceed = selectedPaymentMethod !== null;
+  const canProceed = phoneNumber.trim() !== '' && isValidTanzaniaPhone(phoneNumber) && normalizedPhone !== null;
 
   console.log('💳 Payment Screen State:', {
     selectedGarments: selectedGarments.length,
@@ -93,14 +68,32 @@ export default function PaymentScreen() {
     location: location ? 'Set' : 'Not set'
   });
 
-  const handlePaymentMethodSelect = (methodId: string) => {
-    setSelectedPaymentMethod(methodId);
-    setShowPaymentModal(true);
+  const handlePhoneNumberChange = (text: string) => {
+    setPhoneNumber(text);
+    
+    // Auto-detect network as user types
+    const network = detectTanzaniaNetwork(text);
+    const normalized = normalizeTanzaniaPhone(text);
+    
+    setDetectedNetwork(network);
+    setNormalizedPhone(normalized);
+    
+    console.log('📱 Phone input changed:', {
+      input: text,
+      detectedNetwork: network,
+      normalized,
+      isValid: isValidTanzaniaPhone(text)
+    });
   };
 
   const handleConfirmPayment = async () => {
-    if (!selectedPaymentMethod) {
-      Alert.alert('Error', 'Please select a payment method.');
+    if (!normalizedPhone) {
+      Alert.alert('Error', 'Please enter a valid phone number.');
+      return;
+    }
+
+    if (!isValidTanzaniaPhone(phoneNumber)) {
+      Alert.alert('Error', 'Please enter a valid Tanzania mobile number.');
       return;
     }
 
@@ -113,22 +106,24 @@ export default function PaymentScreen() {
     
     try {
       console.log('💳 Processing payment for existing order:', orderId);
+      console.log('📱 Phone number:', normalizedPhone);
+      console.log('📶 Detected network:', detectedNetwork);
       
-      // Set payment method in store
-      setPaymentMethod(selectedPaymentMethod);
+      // Call payment initiation API
+      const paymentEndpoint = `/payments/initiate/${orderId}`;
+      console.log('🔗 Calling payment API:', paymentEndpoint);
       
-      // Mock payment processing (simulate API call)
-      console.log('🔄 Mocking payment processing...');
-      await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+      const response = await API.post(paymentEndpoint, {
+        phoneNumber: normalizedPhone
+      });
       
-      // Mock successful payment
-      console.log('✅ Payment processed successfully (mocked)');
+      console.log('✅ Payment initiation response:', response.data);
       
-      // Note: Skipping order status update since the API endpoint doesn't exist yet
-      // In a real implementation, you would update the order status here:
-      // await orderService.updateOrderStatus(orderId, 'confirmed');
+      // Store payment response
+      setPaymentResponse(response.data);
       
-      console.log('✅ Payment successful (mocked) - Order status update skipped');
+      // Set payment method in store (using detected network)
+      setPaymentMethod(detectedNetwork?.toLowerCase() || 'mobile_money');
       
       // Close payment modal and show success modal
       setShowPaymentModal(false);
@@ -136,14 +131,23 @@ export default function PaymentScreen() {
       
     } catch (error: any) {
       console.error('❌ Payment processing failed:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       
-      // Note: Skipping order cancellation since the API endpoint doesn't exist yet
-      // In a real implementation, you would cancel the order here:
-      // await orderService.cancelOrder(orderId);
+      let errorMessage = 'There was an error processing your payment. Please try again.';
       
-      console.log('💳 Payment failed (mocked) - Order cancellation skipped');
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       
-      Alert.alert('Payment Failed', 'There was an error processing your payment. Please try again.');
+      Alert.alert('Payment Failed', errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -174,9 +178,27 @@ export default function PaymentScreen() {
 
   const handleProceedToPayment = () => {
     if (!canProceed) {
-      Alert.alert('Error', 'Please select a payment method to continue.');
+      Alert.alert('Error', 'Please enter a valid phone number to continue.');
       return;
     }
+    
+    if (!normalizedPhone) {
+      Alert.alert('Error', 'Please enter a valid Tanzania mobile number.');
+      return;
+    }
+    
+    if (detectedNetwork === 'Unknown') {
+      Alert.alert(
+        'Unknown Network',
+        'We couldn\'t detect your mobile network. Please verify your phone number is correct.',
+        [
+          { text: 'Check Number', style: 'cancel' },
+          { text: 'Continue Anyway', onPress: () => setShowPaymentModal(true) }
+        ]
+      );
+      return;
+    }
+    
     setShowPaymentModal(true);
   };
 
@@ -248,74 +270,105 @@ export default function PaymentScreen() {
           </View>
         </View>
 
-        {/* Payment Methods */}
+        {/* Phone Number Input */}
         <View style={[styles.paymentCard, { backgroundColor: colors.card }]}>
           <View style={styles.paymentCardHeader}>
             <View style={styles.paymentIconContainer}>
-              <Ionicons name="card" size={24} color="white" />
+              <Ionicons name="phone-portrait" size={24} color="white" />
             </View>
             <View style={styles.paymentCardInfo}>
               <Text style={[styles.paymentCardTitle, { color: colors.text }]}>
-                Payment Methods
+                Mobile Money Payment
               </Text>
               <Text style={[styles.paymentCardSubtitle, { color: colors.textSecondary }]}>
-                Choose your preferred payment option
+                Enter your phone number to complete payment
               </Text>
             </View>
           </View>
           
-          <View style={styles.paymentMethodsList}>
-            {PAYMENT_METHODS.map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.paymentMethodRow,
-                  {
-                    backgroundColor: selectedPaymentMethod === method.id ? colors.background : colors.background,
-                    borderColor: selectedPaymentMethod === method.id ? method.color : colors.border,
-                    borderWidth: selectedPaymentMethod === method.id ? 2 : 1,
-                  },
-                ]}
-                onPress={() => handlePaymentMethodSelect(method.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.paymentMethodContent}>
-                  <View style={[
-                    styles.paymentMethodIcon, 
-                    { 
-                      backgroundColor: method.color + '20',
-                      borderColor: method.color,
-                      borderWidth: 1,
-                    }
-                  ]}>
-                    <Ionicons name={method.icon as any} size={20} color={method.color} />
-                  </View>
-                  
-                  <View style={styles.paymentMethodInfo}>
-                    <Text style={[
-                      styles.paymentMethodName, 
-                      { 
-                        color: selectedPaymentMethod === method.id ? method.color : colors.text,
-                        fontWeight: selectedPaymentMethod === method.id ? '600' : '500',
-                      }
-                    ]}>
-                      {method.name}
-                    </Text>
-                    <Text style={[styles.paymentMethodDescription, { color: colors.textSecondary }]}>
-                      {method.description}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.paymentMethodAction}>
-                    {selectedPaymentMethod === method.id ? (
-                      <Ionicons name="checkmark-circle" size={24} color={method.color} />
-                    ) : (
-                      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                    )}
-                  </View>
+          <View style={styles.phoneInputContainer}>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>
+              Phone Number
+            </Text>
+            <TextInput
+              style={[
+                styles.phoneInput,
+                { 
+                  color: colors.text,
+                  backgroundColor: colors.background,
+                  borderColor: detectedNetwork && detectedNetwork !== 'Invalid number' && detectedNetwork !== 'Unknown' 
+                    ? '#10B981' 
+                    : colors.border
+                }
+              ]}
+              placeholder="Enter phone number (e.g., 0755123456, 0655123456)"
+              placeholderTextColor={colors.textSecondary}
+              value={phoneNumber}
+              onChangeText={handlePhoneNumberChange}
+              keyboardType="phone-pad"
+              maxLength={13}
+              autoFocus={false}
+            />
+            
+            {/* Network Detection Feedback */}
+            {detectedNetwork && detectedNetwork !== 'Invalid number' && detectedNetwork !== 'Unknown' && (
+              <View style={[styles.networkBadge, { backgroundColor: '#10B981' + '15', borderColor: '#10B981' }]}>
+                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                <Text style={[styles.networkText, { color: '#10B981' }]}>
+                  {detectedNetwork} Detected
+                </Text>
+              </View>
+            )}
+            
+            {phoneNumber && phoneNumber.length >= 3 && detectedNetwork === 'Invalid number' && (
+              <View style={[styles.networkBadge, { backgroundColor: '#EF4444' + '15', borderColor: '#EF4444' }]}>
+                <Ionicons name="close-circle" size={18} color="#EF4444" />
+                <Text style={[styles.networkText, { color: '#EF4444' }]}>
+                  Invalid phone number format
+                </Text>
+              </View>
+            )}
+            
+            {phoneNumber && phoneNumber.length >= 3 && detectedNetwork === 'Unknown' && (
+              <View style={[styles.networkBadge, { backgroundColor: '#F59E0B' + '15', borderColor: '#F59E0B' }]}>
+                <Ionicons name="warning" size={18} color="#F59E0B" />
+                <Text style={[styles.networkText, { color: '#F59E0B' }]}>
+                  Unknown network - verify your number
+                </Text>
+              </View>
+            )}
+            
+            {normalizedPhone && (
+              <View style={styles.normalizedInfo}>
+                <Text style={[styles.normalizedLabel, { color: colors.textSecondary }]}>
+                  Formatted: <Text style={{ color: colors.text, fontWeight: '500' }}>{normalizedPhone}</Text>
+                </Text>
+              </View>
+            )}
+            
+            {/* Supported Networks Info */}
+            <View style={[styles.supportedNetworks, { backgroundColor: colors.background }]}>
+              <Text style={[styles.supportedLabel, { color: colors.textSecondary }]}>
+                Supported Networks:
+              </Text>
+              <View style={styles.networkChips}>
+                <View style={[styles.networkChip, { backgroundColor: '#00A86B' + '15' }]}>
+                  <Text style={[styles.networkChipText, { color: '#00A86B' }]}>Vodacom</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
+                <View style={[styles.networkChip, { backgroundColor: '#FF6B00' + '15' }]}>
+                  <Text style={[styles.networkChipText, { color: '#FF6B00' }]}>Tigo</Text>
+                </View>
+                <View style={[styles.networkChip, { backgroundColor: '#E60012' + '15' }]}>
+                  <Text style={[styles.networkChipText, { color: '#E60012' }]}>Airtel</Text>
+                </View>
+                <View style={[styles.networkChip, { backgroundColor: '#9C27B0' + '15' }]}>
+                  <Text style={[styles.networkChipText, { color: '#9C27B0' }]}>Halotel</Text>
+                </View>
+                <View style={[styles.networkChip, { backgroundColor: '#2196F3' + '15' }]}>
+                  <Text style={[styles.networkChipText, { color: '#2196F3' }]}>TTCL</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -383,20 +436,20 @@ export default function PaymentScreen() {
                   },
                 ]}
               >
-                {canProceed ? 'Process Payment' : 'Select payment method'}
+                {canProceed ? 'Proceed to Payment' : 'Enter phone number'}
               </Text>
-              {canProceed && (
+              {canProceed && detectedNetwork && (
                 <Text style={[
-                  styles.paymentButtonTotal,
-                  { color: 'rgba(255, 255, 255, 0.8)' }
+                  styles.paymentButtonSubtext,
+                  { color: 'rgba(255, 255, 255, 0.7)' }
                 ]}>
-                  {formatCurrency(total)}
+                  via {detectedNetwork} • {formatCurrency(total)}
                 </Text>
               )}
             </View>
             <View style={styles.paymentButtonArrow}>
               <Ionicons
-                name={canProceed ? "card" : "card-outline"}
+                name={canProceed ? "phone-portrait" : "phone-portrait-outline"}
                 size={20}
                 color={canProceed ? 'white' : '#6b7280'}
               />
@@ -428,8 +481,16 @@ export default function PaymentScreen() {
                 {formatCurrency(total)}
               </Text>
               <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-                Pay with {PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod)?.name}
+                Payment via {detectedNetwork || 'Mobile Money'}
               </Text>
+              <View style={[styles.modalPhoneInfo, { backgroundColor: colors.background, marginTop: 16, padding: 12, borderRadius: 8 }]}>
+                <Text style={[styles.modalPhoneLabel, { color: colors.textSecondary, fontSize: 12 }]}>
+                  Phone Number:
+                </Text>
+                <Text style={[styles.modalPhoneNumber, { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 4 }]}>
+                  {normalizedPhone}
+                </Text>
+              </View>
             </View>
             
             <View style={styles.modalActions}>
@@ -504,7 +565,7 @@ export default function PaymentScreen() {
                     Payment Method:
                   </Text>
                   <Text style={[styles.orderInfoValue, { color: colors.text }]}>
-                    {PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod)?.name}
+                    {detectedNetwork || 'Mobile Money'}
                   </Text>
                 </View>
                 <View style={styles.orderInfoRow}>
@@ -1077,5 +1138,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  // Phone Input Styles
+  phoneInputContainer: {
+    padding: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  phoneInput: {
+    fontSize: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    fontWeight: '500',
+  },
+  networkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  networkText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  normalizedInfo: {
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  normalizedLabel: {
+    fontSize: 13,
+  },
+  supportedNetworks: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 8,
+  },
+  supportedLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  networkChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  networkChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  networkChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  paymentButtonSubtext: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalPhoneInfo: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 8,
+  },
+  modalPhoneLabel: {
+    fontSize: 12,
+  },
+  modalPhoneNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });

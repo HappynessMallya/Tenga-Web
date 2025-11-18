@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Types
 export interface LaundryItem {
@@ -31,6 +33,8 @@ export interface Location {
   latitude?: number;
   longitude?: number;
   isCurrentLocation: boolean;
+  city?: string;
+  country?: string;
 }
 
 export interface OrderData {
@@ -45,16 +49,28 @@ export interface OrderData {
   orderId: string | null;
 }
 
-// Custom storage for Zustand with SecureStore
+// Platform-aware storage for Zustand (SecureStore on native, AsyncStorage on web)
 const secureStorage = createJSONStorage(() => ({
-  setItem: async (name, value) => {
-    await SecureStore.setItemAsync(name, value);
+  setItem: async (name: string, value: string) => {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.setItem(name, value);
+    } else {
+      await SecureStore.setItemAsync(name, value);
+    }
   },
-  getItem: async (name) => {
-    return await SecureStore.getItemAsync(name);
+  getItem: async (name: string) => {
+    if (Platform.OS === 'web') {
+      return await AsyncStorage.getItem(name);
+    } else {
+      return await SecureStore.getItemAsync(name);
+    }
   },
-  removeItem: async (name) => {
-    await SecureStore.deleteItemAsync(name);
+  removeItem: async (name: string) => {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.removeItem(name);
+    } else {
+      await SecureStore.deleteItemAsync(name);
+    }
   },
 }));
 

@@ -78,11 +78,21 @@ export default function TimeLocationScreen() {
     console.log('📍 Location data received:', locationData);
     
     // Convert LocationData to Location format for Zustand store
+    // Include city information in the address for better extraction later
+    const addressParts = [
+      locationData.streetName || locationData.landMark,
+      locationData.city,
+      locationData.country
+    ].filter(Boolean); // Remove empty parts
+    
     const locationForStore = {
-      address: `${locationData.streetName}, ${locationData.city}, ${locationData.country}`,
+      address: addressParts.join(', ') || `Location at ${locationData.latitude}, ${locationData.longitude}`,
       latitude: parseFloat(locationData.latitude),
       longitude: parseFloat(locationData.longitude),
       isCurrentLocation: true,
+      // Store city separately for easier access
+      city: locationData.city || 'Unknown',
+      country: locationData.country || 'Unknown',
     };
     
     console.log('📍 Location converted for store:', locationForStore);

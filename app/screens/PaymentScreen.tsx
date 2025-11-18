@@ -29,6 +29,9 @@ import {
   showPaymentRecoveryAlert,
   createOrderForCompletedPayment,
 } from '../utils/payment-recovery';
+import { detectTanzaniaNetwork, normalizeTanzaniaPhone, isValidTanzaniaPhone } from '../utils/phoneUtils';
+import { useOrderStore } from '../store/orderStore';
+import API from '../api/axiosInstance';
 
 export default function PaymentScreen() {
   const { colors } = useTheme();
@@ -44,6 +47,9 @@ export default function PaymentScreen() {
     paymentMethod?: string;
   }>();
 
+  // Get orderId from order store (stored before payment)
+  const { orderId } = useOrderStore();
+
   // Parse order data
   const orderData = orderDataString ? JSON.parse(orderDataString) : null;
 
@@ -52,10 +58,11 @@ export default function PaymentScreen() {
     (initialPaymentMethod as PaymentMethod) || 'mobile_money'
   );
   const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber || '');
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(orderId);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successOrderId, setSuccessOrderId] = useState<string>('');
-  const [networkInfo, setNetworkInfo] = useState<{ network: string; prefix: string } | null>(null);
+  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
+  const [normalizedPhone, setNormalizedPhone] = useState<string | null>(null);
 
   // Payment hook
   const { processPayment } = usePayment();
@@ -66,10 +73,10 @@ export default function PaymentScreen() {
 
   // Prepare payment data
   const paymentData: CreatePaymentData = {
-    // order_id: generateUUID(), // Don't set order_id yet - it will be set after order creation
+    order_id: orderId || undefined, // Use orderId from store (stored before payment)
     amount: parseFloat(amount),
     payment_method: selectedMethod,
-    phone: phoneNumber,
+    phone: normalizedPhone || phoneNumber, // Use normalized phone number
     user_id: orderData?.customer_id,
   };
 
@@ -260,67 +267,13 @@ export default function PaymentScreen() {
 
   const handlePhoneNumberChange = (text: string) => {
     setPhoneNumber(text);
-    const network = getNetworkInfo(text);
-    setNetworkInfo(network);
-  };
-
-  const validatePhoneNumber = (phone: string) => {
-    // Remove any non-digit characters
-    const cleaned = phone.replace(/\D/g, '');
-
-    // Define all known Tanzanian mobile prefixes per operator
-    const prefixes = {
-      Vodacom: ['074', '075', '076'],
-      Airtel: ['068', '069', '078', '079'],
-      Tigo: ['065', '066', '067', '071', '077'],
-      Halotel: ['061', '062', '063', '064'],
-      TTCL: ['073'],
-      Zantel: ['077'],
-    };
-
-    // Check if it's a valid Tanzanian phone number
-    if (cleaned.length === 9 && cleaned.startsWith('7')) {
-      return `255${cleaned}`;
-    } else if (cleaned.length === 12 && cleaned.startsWith('255')) {
-      return cleaned;
-    } else if (cleaned.length === 10 && cleaned.startsWith('07')) {
-      return `255${cleaned.substring(1)}`;
-    } else if (cleaned.length === 10 && cleaned.startsWith('06')) {
-      return `255${cleaned.substring(1)}`;
-    } else if (cleaned.length === 10 && cleaned.startsWith('09')) {
-      return `255${cleaned.substring(1)}`;
-    }
-
-    return null;
-  };
-
-  const getNetworkInfo = (phone: string) => {
-    if (!phone || phone.length < 3) return null;
-
-    // Remove any non-digit characters
-    const cleaned = phone.replace(/\D/g, '');
-
-    // Define all known Tanzanian mobile prefixes per operator
-    const prefixes = {
-      Vodacom: ['074', '075', '076'],
-      Airtel: ['068', '069', '078', '079'],
-      Tigo: ['065', '066', '067', '071', '077'],
-      Halotel: ['061', '062', '063', '064'],
-      TTCL: ['073'],
-      Zantel: ['077'],
-    };
-
-    // Get the prefix (first 3 digits)
-    const prefix = cleaned.slice(0, 3);
-
-    // Find matching network
-    for (const [network, networkPrefixes] of Object.entries(prefixes)) {
-      if (networkPrefixes.includes(prefix)) {
-        return { network, prefix };
-      }
-    }
-
-    return null;
+    
+    // Auto-detect network and normalize phone number
+    const network = detectTanzaniaNetwork(text);
+    const normalized = normalizeTanzaniaPhone(text);
+    
+    setDetectedNetwork(network);
+    setNormalizedPhone(normalized);
   };
 
   const handleViewOrder = () => {
@@ -383,19 +336,24 @@ export default function PaymentScreen() {
               keyboardType="phone-pad"
               maxLength={12}
             />
-            {networkInfo && (
+            {detectedNetwork && detectedNetwork !== 'Invalid number' && detectedNetwork !== 'Unknown' && (
               <Text style={[styles.networkInfo, { color: colors.success || '#10B981' }]}>
-                ✅ Detected Network: {networkInfo.network}
+                ✅ Detected Network: {detectedNetwork}
               </Text>
             )}
-            {phoneNumber && phoneNumber.length >= 3 && !networkInfo && (
+            {phoneNumber && phoneNumber.length >= 3 && detectedNetwork === 'Invalid number' && (
               <Text style={[styles.networkInfo, { color: colors.error || '#EF4444' }]}>
-                ❌ Invalid prefix. Please check your number.
+                ❌ Invalid phone number format
               </Text>
             )}
-            {phoneNumber && !validatePhoneNumber(phoneNumber) && (
-              <Text style={[styles.errorText, { color: colors.error }]}>
-                Please enter a valid Tanzania phone number
+            {phoneNumber && phoneNumber.length >= 3 && detectedNetwork === 'Unknown' && (
+              <Text style={[styles.networkInfo, { color: colors.warning || '#F59E0B' }]}>
+                ⚠️ Unknown network. Please verify your number.
+              </Text>
+            )}
+            {normalizedPhone && (
+              <Text style={[styles.normalizedPhone, { color: colors.textSecondary }]}>
+                Format: {normalizedPhone}
               </Text>
             )}
           </View>
@@ -412,7 +370,7 @@ export default function PaymentScreen() {
               <Button
                 title={isProcessing ? 'Processing Payment...' : 'Proceed to Payment'}
                 onPress={startPayment}
-                disabled={!phoneNumber.trim() || !validatePhoneNumber(phoneNumber) || isProcessing}
+                disabled={!phoneNumber.trim() || !isValidTanzaniaPhone(phoneNumber) || !normalizedPhone || isProcessing}
                 style={styles.payButton}
               />
             )}
@@ -481,19 +439,24 @@ export default function PaymentScreen() {
               keyboardType="phone-pad"
               maxLength={12}
             />
-            {networkInfo && (
+            {detectedNetwork && detectedNetwork !== 'Invalid number' && detectedNetwork !== 'Unknown' && (
               <Text style={[styles.networkInfo, { color: colors.success || '#10B981' }]}>
-                ✅ Detected Network: {networkInfo.network}
+                ✅ Detected Network: {detectedNetwork}
               </Text>
             )}
-            {phoneNumber && phoneNumber.length >= 3 && !networkInfo && (
+            {phoneNumber && phoneNumber.length >= 3 && detectedNetwork === 'Invalid number' && (
               <Text style={[styles.networkInfo, { color: colors.error || '#EF4444' }]}>
-                ❌ Invalid prefix. Please check your number.
+                ❌ Invalid phone number format
               </Text>
             )}
-            {phoneNumber && !validatePhoneNumber(phoneNumber) && (
-              <Text style={[styles.errorText, { color: colors.error }]}>
-                Please enter a valid Tanzania phone number
+            {phoneNumber && phoneNumber.length >= 3 && detectedNetwork === 'Unknown' && (
+              <Text style={[styles.networkInfo, { color: colors.warning || '#F59E0B' }]}>
+                ⚠️ Unknown network. Please verify your number.
+              </Text>
+            )}
+            {normalizedPhone && (
+              <Text style={[styles.normalizedPhone, { color: colors.textSecondary }]}>
+                Format: {normalizedPhone}
               </Text>
             )}
           </View>
@@ -511,7 +474,7 @@ export default function PaymentScreen() {
               <Button
                 title={isProcessing ? 'Processing Payment...' : 'Proceed to Payment'}
                 onPress={startPayment}
-                disabled={!phoneNumber.trim() || !validatePhoneNumber(phoneNumber) || isProcessing}
+                disabled={!phoneNumber.trim() || !isValidTanzaniaPhone(phoneNumber) || !normalizedPhone || isProcessing}
                 style={styles.payButton}
               />
             )}
@@ -640,5 +603,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  normalizedPhone: {
+    marginTop: 4,
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });

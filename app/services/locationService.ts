@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 export interface LocationData {
   latitude: string;
@@ -84,13 +85,37 @@ export class LocationService {
 
       console.log('Reverse geocoding coordinates:', { latitude, longitude });
 
-      const addresses = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
+      // On web, expo-location reverse geocoding doesn't work well, use alternative
+      if (Platform.OS === 'web') {
+        return await this.reverseGeocodeWeb(latitude, longitude);
+      }
 
+      // Try to reverse geocode, but don't fail if it doesn't work
+      let addresses: Location.LocationGeocodedAddress[] = [];
+      try {
+        addresses = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
+      } catch (geocodeError) {
+        console.warn('Reverse geocoding failed, using fallback:', geocodeError);
+        // Continue with fallback data
+      }
+
+      // If reverse geocoding failed or returned no results, use fallback
       if (addresses.length === 0) {
-        throw new Error('No address found for coordinates');
+        console.warn('No address found from reverse geocoding, using coordinates as fallback');
+        // Return location data with coordinates but minimal address info
+        return {
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          city: 'Unknown',
+          country: 'Unknown',
+          streetName: `Location at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+          houseNumber: '',
+          postCode: '',
+          landMark: `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        };
       }
 
       const addr = addresses[0];
@@ -99,16 +124,84 @@ export class LocationService {
       return {
         latitude: latitude.toString(),
         longitude: longitude.toString(),
-        city: addr?.city || addr?.district || 'Unknown',
+        city: addr?.city || addr?.district || addr?.region || 'Unknown',
         country: addr?.country || 'Unknown',
-        streetName: addr?.street || addr?.name || 'Unknown',
+        streetName: addr?.street || addr?.name || `Location at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
         houseNumber: addr?.streetNumber || '',
         postCode: addr?.postalCode || '',
-        landMark: addr?.name || '',
+        landMark: addr?.name || addr?.street || `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
       };
     } catch (error) {
       console.error('Error reverse geocoding:', error);
-      throw error;
+      // Even if there's an error, return coordinates so user can proceed
+      return {
+        latitude: latitude.toString(),
+        longitude: longitude.toString(),
+        city: 'Unknown',
+        country: 'Unknown',
+        streetName: `Location at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        houseNumber: '',
+        postCode: '',
+        landMark: `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      };
+    }
+  }
+
+  /**
+   * Reverse geocode using web-based service (for web platform)
+   */
+  private static async reverseGeocodeWeb(
+    latitude: number,
+    longitude: number
+  ): Promise<LocationData> {
+    try {
+      // Use OpenStreetMap Nominatim API (free, no API key required)
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+      
+      console.log('Using web geocoding service:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'TengaLaundryApp/1.0', // Required by Nominatim
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Geocoding API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Web geocoding result:', data);
+
+      if (data && data.address) {
+        const addr = data.address;
+        return {
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          city: addr.city || addr.town || addr.village || addr.municipality || addr.county || 'Unknown',
+          country: addr.country || 'Unknown',
+          streetName: addr.road || addr.street || addr.pedestrian || `Location at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+          houseNumber: addr.house_number || addr.house || '',
+          postCode: addr.postcode || '',
+          landMark: addr.name || addr.display_name?.split(',')[0] || `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        };
+      }
+
+      // Fallback if no address data
+      throw new Error('No address data in response');
+    } catch (error) {
+      console.warn('Web geocoding failed, using coordinates fallback:', error);
+      // Return coordinates with minimal info
+      return {
+        latitude: latitude.toString(),
+        longitude: longitude.toString(),
+        city: 'Unknown',
+        country: 'Unknown',
+        streetName: `Location at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        houseNumber: '',
+        postCode: '',
+        landMark: `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      };
     }
   }
 

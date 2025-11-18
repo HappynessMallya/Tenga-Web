@@ -20,6 +20,7 @@ import { useGarmentConfig } from '../hooks/useGarmentConfig';
 import { formatCurrency } from '../utils/orderCalculations';
 import { orderCreationService } from '../services/orderCreationService';
 import { CreateOrderRequest } from '../types/orderCreation';
+import { vendorService } from '../services/vendorService';
 
 export default function OrderSummaryScreen() {
   const { colors } = useTheme();
@@ -54,7 +55,15 @@ export default function OrderSummaryScreen() {
       total,
       selectedItemsCount,
       pickupDate: pickupDate ? 'Set' : 'Not set',
-      location: location ? 'Set' : 'Not set'
+      location: location ? {
+        hasLocation: true,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+        city: location.city,
+        country: location.country
+      } : 'Not set',
+      buttonDisabled: isCreatingOrder || !location || location.latitude === undefined || location.latitude === null || location.longitude === undefined || location.longitude === null || location.latitude === 0 || location.longitude === 0
     });
   }
 
@@ -86,6 +95,101 @@ export default function OrderSummaryScreen() {
     return mappedId || garmentTypeName.toLowerCase().replace(/\s+/g, '_');
   };
 
+  // Separate function for order creation to allow retry after vendor check
+  const proceedWithOrderCreation = async () => {
+    setIsCreatingOrder(true);
+    try {
+      console.log('🛒 Creating order from order summary...');
+      
+      if (!location) {
+        throw new Error('Location is required');
+      }
+      
+      // Prepare order data from stores
+      const orderData: CreateOrderRequest = {
+        items: selectedGarments.map(garment => ({
+          garmentTypeId: getGarmentTypeShortId(garment.garmentTypeName), // Convert to short form ID
+          serviceType: garment.serviceType,
+          description: `${garment.garmentTypeName} - ${garment.serviceType.replace('_', ' ')}`,
+          quantity: garment.quantity,
+          weightLbs: 0.5, // Default weight per item
+          price: garment.unitPrice
+        })),
+        customerLocation: {
+          latitude: location.latitude?.toString() || '0',
+          longitude: location.longitude?.toString() || '0',
+          description: location.address || `Location at ${location.latitude}, ${location.longitude}`,
+          city: location.city || location.address?.split(',')?.[1]?.trim() || 'Dar es Salaam', // Use stored city or extract from address
+          country: location.country || location.address?.split(',')?.[2]?.trim() || 'Tanzania'
+        },
+        preferredPickupTimeStart: pickupDate?.toISOString() || new Date().toISOString(),
+        preferredPickupTimeEnd: new Date((pickupDate?.getTime() || Date.now()) + 2 * 60 * 60 * 1000).toISOString(), // 2 hours later
+        preferredDeliveryTimeStart: new Date((pickupDate?.getTime() || Date.now()) + 24 * 60 * 60 * 1000).toISOString(), // 24 hours later
+        preferredDeliveryTimeEnd: new Date((pickupDate?.getTime() || Date.now()) + 26 * 60 * 60 * 1000).toISOString(), // 26 hours later (2-hour delivery window)
+        notes: notes || '',
+        tags: []
+      };
+
+      console.log('📦 Order data prepared:', JSON.stringify(orderData, null, 2));
+      console.log('🔍 Selected garments debug:', selectedGarments.map(g => ({
+        garmentTypeId: g.garmentTypeId,
+        garmentTypeName: g.garmentTypeName,
+        serviceType: g.serviceType,
+        categoryId: g.categoryId,
+        categoryName: g.categoryName,
+        convertedGarmentTypeId: getGarmentTypeShortId(g.garmentTypeName)
+      })));
+      console.log('🔍 Full garment objects:', selectedGarments);
+      
+      // Create order via API
+      const orderResponse = await orderCreationService.createOrder(orderData);
+      console.log('✅ Order created successfully:', orderResponse);
+      
+      const orderId = orderResponse.order.id;
+      setCreatedOrderId(orderId);
+      
+      // Store orderId in Zustand for persistence across screens
+      setOrderId(orderId);
+      console.log('💾 OrderId stored in Zustand:', orderId);
+      
+      // Show success modal
+      setShowOrderSuccessModal(true);
+      setIsCreatingOrder(false);
+      
+    } catch (error: any) {
+      console.error('❌ Order creation failed:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      
+      // Show detailed error information
+      let errorMessage = 'There was an error creating your order. Please try again.';
+      
+      if (error.response?.data) {
+        console.log('📄 API Error Response:', JSON.stringify(error.response.data, null, 2));
+        
+        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
+          errorMessage = `Order validation failed:\n${error.response.data.errors.join('\n')}`;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert(
+        'Order Creation Failed', 
+        errorMessage,
+        [
+          { text: 'OK', style: 'default' }
+        ]
+      );
+      setIsCreatingOrder(false);
+    }
+  };
+
   const handleProceedToPayment = async () => {
     // Validate order data
     if (selectedGarments.length === 0) {
@@ -115,87 +219,129 @@ export default function OrderSummaryScreen() {
       return;
     }
 
-    // Create order first
+    // Check for nearby vendors before creating order
     setIsCreatingOrder(true);
+    console.log('🔍 Starting vendor check process...');
     
     try {
-      console.log('🛒 Creating order from order summary...');
+      console.log('🔍 Checking for nearby vendors...');
+      console.log('📍 Location coordinates:', { 
+        latitude: location.latitude, 
+        longitude: location.longitude,
+        type: typeof location.latitude,
+        isNumber: !isNaN(Number(location.latitude))
+      });
       
-      // Prepare order data from stores
-      const orderData: CreateOrderRequest = {
-        items: selectedGarments.map(garment => ({
-          garmentTypeId: getGarmentTypeShortId(garment.garmentTypeName), // Convert to short form ID
-          serviceType: garment.serviceType,
-          description: `${garment.garmentTypeName} - ${garment.serviceType.replace('_', ' ')}`,
-          quantity: garment.quantity,
-          weightLbs: 0.5, // Default weight per item
-          price: garment.unitPrice
-        })),
-        customerLocation: {
-          latitude: location?.latitude?.toString() || '0',
-          longitude: location?.longitude?.toString() || '0',
-          description: location?.address || '',
-          city: 'Dar es Salaam', // Default city - should be extracted from location
-          country: 'Tanzania'
-        },
-        preferredPickupTimeStart: pickupDate?.toISOString() || new Date().toISOString(),
-        preferredPickupTimeEnd: new Date(pickupDate?.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours later
-        preferredDeliveryTimeStart: new Date(pickupDate?.getTime() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours later
-        preferredDeliveryTimeEnd: new Date(pickupDate?.getTime() + 26 * 60 * 60 * 1000).toISOString(), // 26 hours later (2-hour delivery window)
-        notes: notes || '',
-        tags: []
-      };
-
-      console.log('📦 Order data prepared:', JSON.stringify(orderData, null, 2));
-      console.log('🔍 Selected garments debug:', selectedGarments.map(g => ({
-        garmentTypeId: g.garmentTypeId,
-        garmentTypeName: g.garmentTypeName,
-        serviceType: g.serviceType,
-        categoryId: g.categoryId,
-        categoryName: g.categoryName,
-        convertedGarmentTypeId: getGarmentTypeShortId(g.garmentTypeName)
-      })));
-      console.log('🔍 Full garment objects:', selectedGarments);
+      // Validate coordinates are numbers
+      const lat = Number(location.latitude);
+      const lng = Number(location.longitude);
       
-      // Create order via API
-      const orderResponse = await orderCreationService.createOrder(orderData);
-      console.log('✅ Order created successfully:', orderResponse);
-      
-      const orderId = orderResponse.order.id;
-      setCreatedOrderId(orderId);
-      
-      // Store orderId in Zustand for persistence across screens
-      setOrderId(orderId);
-      console.log('💾 OrderId stored in Zustand:', orderId);
-      
-      // Show success modal
-      setShowOrderSuccessModal(true);
-      
-    } catch (error: any) {
-      console.error('❌ Order creation failed:', error);
-      
-      // Show detailed error information
-      let errorMessage = 'There was an error creating your order. Please try again.';
-      
-      if (error.response?.data) {
-        console.log('📄 API Error Response:', JSON.stringify(error.response.data, null, 2));
-        
-        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
-          errorMessage = `Order validation failed:\n${error.response.data.errors.join('\n')}`;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        }
+      if (isNaN(lat) || isNaN(lng)) {
+        console.error('❌ Invalid coordinates:', { latitude: location.latitude, longitude: location.longitude });
+        setIsCreatingOrder(false);
+        Alert.alert(
+          'Invalid Location',
+          'The location coordinates are invalid. Please try getting your location again.',
+          [{ text: 'OK' }]
+        );
+        return;
       }
       
-      Alert.alert(
-        'Order Creation Failed', 
-        errorMessage,
-        [
-          { text: 'OK', style: 'default' }
-        ]
-      );
-    } finally {
+      // Search for nearby vendors within 10000m radius with timeout
+      let nearbyVendors;
+      try {
+        console.log('⏱️ Starting vendor search with 15-second timeout...');
+        
+        // Add timeout to vendor search (15 seconds)
+        const vendorSearchPromise = vendorService.searchNearbyOffices(
+          lat,
+          lng,
+          10000
+        );
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => {
+            console.error('⏰ Vendor search timeout reached!');
+            reject(new Error('Vendor search timed out after 15 seconds'));
+          }, 15000)
+        );
+        
+        nearbyVendors = await Promise.race([vendorSearchPromise, timeoutPromise]) as any;
+        console.log('✅ Vendor search completed successfully');
+      } catch (vendorError: any) {
+        console.error('❌ Vendor search failed:', vendorError);
+        console.error('❌ Error type:', vendorError.constructor.name);
+        console.error('❌ Error message:', vendorError.message);
+        console.error('❌ Error stack:', vendorError.stack);
+        
+        setIsCreatingOrder(false);
+        
+        // Determine error message based on error type
+        let errorDetails = 'Network error or timeout. Please check your internet connection.';
+        if (vendorError.message?.includes('timeout')) {
+          errorDetails = 'The request took too long. The server might be busy.';
+        } else if (vendorError.code === 'ERR_NETWORK') {
+          errorDetails = 'Network connection failed. Please check your internet.';
+        } else if (vendorError.response?.status) {
+          errorDetails = `Server error (${vendorError.response.status}). Please try again.`;
+        }
+        
+        // If vendor search fails, show error but allow user to proceed anyway
+        Alert.alert(
+          'Vendor Check Failed',
+          `We couldn't verify nearby vendors: ${errorDetails}\n\nYou can still proceed with your order, or try again later.`,
+          [
+            { 
+              text: 'Cancel', 
+              style: 'cancel',
+              onPress: () => {
+                console.log('🚫 User cancelled order after vendor check failure');
+                setIsCreatingOrder(false);
+              }
+            },
+            { 
+              text: 'Proceed Anyway', 
+              onPress: () => {
+                console.log('✅ User chose to proceed despite vendor check failure');
+                // Continue with order creation even without vendor check
+                proceedWithOrderCreation();
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      console.log('🔍 Vendor search result:', nearbyVendors);
+
+      // Check if any vendors were found
+      if (!nearbyVendors || !nearbyVendors.offices || nearbyVendors.offices.length === 0) {
+        console.warn('⚠️ No vendors found in the area');
+        setIsCreatingOrder(false);
+        Alert.alert(
+          'No Nearby Vendors',
+          'We couldn\'t find any nearby vendors within 10km of your location. Please try a different location or contact support for assistance.',
+          [
+            { text: 'OK', style: 'default' }
+          ]
+        );
+        return;
+      }
+
+      console.log(`✅ Found ${nearbyVendors.offices.length} nearby vendor(s):`, nearbyVendors.offices);
+      
+      // Proceed with order creation
+      console.log('🎯 Proceeding to order creation...');
+      proceedWithOrderCreation();
+      
+    } catch (error: any) {
+      console.error('❌ Unexpected error in handleProceedToPayment:', error);
       setIsCreatingOrder(false);
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -336,7 +482,7 @@ export default function OrderSummaryScreen() {
                     {garment.garmentTypeName}
                   </Text>
                   <Text style={[styles.itemService, { color: colors.textSecondary }]}>
-                    {garment.serviceType.replace('_', ' ')} • Qty: {garment.quantity}
+                    {garment.serviceType.replace('_', ' ')} - Qty: {garment.quantity}
                   </Text>
                 </View>
                 <Text style={[styles.itemPrice, { color: colors.primary }]}>
@@ -389,7 +535,7 @@ export default function OrderSummaryScreen() {
             </View>
           </View>
         </View>
-
+        
         {/* Notes */}
         {notes && (
           <View style={[styles.notesCard, { backgroundColor: colors.card }]}>
@@ -467,7 +613,7 @@ export default function OrderSummaryScreen() {
             },
           ]}
           onPress={handleProceedToPayment}
-          disabled={isCreatingOrder || !location?.latitude || !location?.longitude}
+          disabled={isCreatingOrder || !location || location.latitude === undefined || location.latitude === null || location.longitude === undefined || location.longitude === null || location.latitude === 0 || location.longitude === 0}
           activeOpacity={0.8}
         >
           <View style={styles.paymentButtonContent}>
