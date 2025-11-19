@@ -33,6 +33,7 @@ export default function OrderSummaryScreen() {
     notes,
     resetOrder,
     setOrderId,
+    setOrderUuid,
   } = useOrderStore();
 
   // Get garment data from garment config store
@@ -146,11 +147,14 @@ export default function OrderSummaryScreen() {
       console.log('✅ Order created successfully:', orderResponse);
       
       const orderId = orderResponse.order.id;
+      const orderUuid = orderResponse.order.uuid;
       setCreatedOrderId(orderId);
       
-      // Store orderId in Zustand for persistence across screens
+      // Store orderId and orderUuid in Zustand for persistence across screens
       setOrderId(orderId);
+      setOrderUuid(orderUuid);
       console.log('💾 OrderId stored in Zustand:', orderId);
+      console.log('💾 OrderUuid stored in Zustand:', orderUuid);
       
       // Show success modal
       setShowOrderSuccessModal(true);

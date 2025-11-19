@@ -47,6 +47,7 @@ export interface OrderData {
   total: number;
   paymentMethod: string | null;
   orderId: string | null;
+  orderUuid: string | null;
 }
 
 // Platform-aware storage for Zustand (SecureStore on native, AsyncStorage on web)
@@ -85,6 +86,7 @@ interface OrderStore extends OrderData {
   setLocation: (location: Location) => void;
   setPaymentMethod: (method: string) => void;
   setOrderId: (orderId: string) => void;
+  setOrderUuid: (orderUuid: string) => void;
 }
 
 const initialState: OrderData = {
@@ -101,6 +103,7 @@ const initialState: OrderData = {
   total: 0,
   paymentMethod: null,
   orderId: null,
+  orderUuid: null,
 };
 
 export const useOrderStore = create<OrderStore>()(
@@ -187,6 +190,10 @@ export const useOrderStore = create<OrderStore>()(
         set({ orderId });
       },
 
+      setOrderUuid: (orderUuid) => {
+        set({ orderUuid });
+      },
+
       resetOrder: () => {
         set(initialState);
       },
@@ -200,6 +207,7 @@ export const useOrderStore = create<OrderStore>()(
         location: state.location,
         paymentMethod: state.paymentMethod,
         orderId: state.orderId,
+        orderUuid: state.orderUuid,
       }),
     }
   )

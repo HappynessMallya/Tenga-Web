@@ -37,6 +37,7 @@ export default function PaymentScreen() {
     setPaymentMethod,
     resetOrder,
     orderId,
+    orderUuid,
   } = useOrderStore();
 
   // Get garment data from garment config store
@@ -97,20 +98,22 @@ export default function PaymentScreen() {
       return;
     }
 
-    if (!orderId) {
-      Alert.alert('Error', 'Order ID is missing. Please go back and try again.');
+    if (!orderUuid) {
+      Alert.alert('Error', 'Order UUID is missing. Please go back and try again.');
       return;
     }
 
     setIsProcessing(true);
     
     try {
-      console.log('💳 Processing payment for existing order:', orderId);
+      console.log('💳 Processing payment for existing order:');
+      console.log('📋 Order ID (MongoDB):', orderId);
+      console.log('🆔 Order UUID:', orderUuid);
       console.log('📱 Phone number:', normalizedPhone);
       console.log('📶 Detected network:', detectedNetwork);
       
-      // Call payment initiation API
-      const paymentEndpoint = `/payments/initiate/${orderId}`;
+      // Call payment initiation API (using UUID, not MongoDB ID)
+      const paymentEndpoint = `/payments/initiate/${orderUuid}`;
       console.log('🔗 Calling payment API:', paymentEndpoint);
       
       const response = await API.post(paymentEndpoint, {
