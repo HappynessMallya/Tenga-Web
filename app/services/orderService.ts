@@ -59,6 +59,7 @@ export interface Trip {
 
 export interface Order {
   id: string;
+  uuid: string;
   status: string;
   subtotal: number;
   taxAmount: number;

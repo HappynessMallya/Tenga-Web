@@ -21,6 +21,7 @@ import { formatCurrency } from '../utils/orderCalculations';
 import { orderCreationService } from '../services/orderCreationService';
 import { CreateOrderRequest } from '../types/orderCreation';
 import { vendorService } from '../services/vendorService';
+import { orderService } from '../services/orderService';
 
 export default function OrderSummaryScreen() {
   const { colors } = useTheme();
@@ -142,19 +143,41 @@ export default function OrderSummaryScreen() {
       })));
       console.log('🔍 Full garment objects:', selectedGarments);
       
-      // Create order via API
+      // Step 1: Create order via API
       const orderResponse = await orderCreationService.createOrder(orderData);
       console.log('✅ Order created successfully:', orderResponse);
       
       const orderId = orderResponse.order.id;
-      const orderUuid = orderResponse.order.uuid;
       setCreatedOrderId(orderId);
+      console.log('📦 Order ID received:', orderId);
       
-      // Store orderId and orderUuid in Zustand for persistence across screens
+      // Step 2: Fetch the complete order to get latest status and UUID
+      console.log('🔄 Fetching complete order data...');
+      const completeOrder = await orderService.getOrderById(orderId);
+      console.log('✅ Complete order fetched:', completeOrder);
+      
+      // Step 3: Extract and store both ID and UUID from the fetched order
+      const orderUuid = completeOrder.uuid || orderResponse.order.uuid;
+      
+      if (!orderUuid) {
+        console.error('⚠️ WARNING: No UUID found in order!');
+        throw new Error('Order UUID is missing. Please contact support.');
+      }
+      
+      console.log('📋 Order details:', {
+        orderId: completeOrder.id,
+        orderUuid: orderUuid,
+        status: completeOrder.status,
+        totalAmount: completeOrder.totalAmount
+      });
+      
+      // Step 4: Store orderId and orderUuid in Zustand for persistence across screens
       setOrderId(orderId);
       setOrderUuid(orderUuid);
-      console.log('💾 OrderId stored in Zustand:', orderId);
-      console.log('💾 OrderUuid stored in Zustand:', orderUuid);
+      console.log('💾 Order data stored in Zustand');
+      console.log('  ├─ Order ID (MongoDB):', orderId);
+      console.log('  ├─ Order UUID:', orderUuid);
+      console.log('  └─ Order Status:', completeOrder.status);
       
       // Show success modal
       setShowOrderSuccessModal(true);

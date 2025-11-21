@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +39,8 @@ export default function PaymentScreen() {
     resetOrder,
     orderId,
     orderUuid,
+    setOrderId,
+    setOrderUuid,
   } = useOrderStore();
 
   // Get garment data from garment config store
@@ -53,20 +56,103 @@ export default function PaymentScreen() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(true);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
-  // Calculate totals
-  const total = getTotalPrice();
-  const selectedItemsCount = selectedGarments.reduce((sum, item) => sum + item.quantity, 0);
-  const selectedServicesCount = new Set(selectedGarments.map(garment => garment.serviceType)).size;
-  const canProceed = phoneNumber.trim() !== '' && isValidTanzaniaPhone(phoneNumber) && normalizedPhone !== null;
+  // Calculate totals from fetched order or fallback to garment config
+  const total = orderData?.totalAmount || getTotalPrice();
+  const selectedItemsCount = orderData?.items?.length || selectedGarments.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedServicesCount = orderData?.items ? new Set(orderData.items.map((item: any) => item.serviceType)).size : new Set(selectedGarments.map(garment => garment.serviceType)).size;
+  const canProceed = phoneNumber.trim() !== '' && isValidTanzaniaPhone(phoneNumber) && normalizedPhone !== null && orderData && !orderError;
+
+  // Fetch fresh order data when screen loads
+  useEffect(() => {
+    const fetchOrderData = async () => {
+      if (!orderId) {
+        console.error('❌ No order ID found');
+        setOrderError('No order found. Please create an order first.');
+        setIsLoadingOrder(false);
+        return;
+      }
+
+      try {
+        setIsLoadingOrder(true);
+        setOrderError(null);
+        
+        console.log('🔄 Payment Screen: Fetching fresh order data...');
+        console.log('📋 Using Order ID:', orderId);
+        
+        const fetchedOrder = await orderService.getOrderById(orderId);
+        
+        console.log('✅ Payment Screen: Order fetched successfully');
+        console.log('📦 Order Details:', {
+          id: fetchedOrder.id,
+          uuid: fetchedOrder.uuid,
+          status: fetchedOrder.status,
+          totalAmount: fetchedOrder.totalAmount,
+          itemsCount: fetchedOrder.items?.length
+        });
+        
+        // Verify order is in valid state for payment
+        if (fetchedOrder.status === 'CANCELED' || fetchedOrder.status === 'CANCELLED') {
+          console.error('❌ Order is canceled');
+          setOrderError('This order has been canceled and cannot accept payment.');
+          Alert.alert(
+            'Order Canceled',
+            'This order has been canceled. Please create a new order.',
+            [
+              {
+                text: 'Create New Order',
+                onPress: () => {
+                  resetOrder();
+                  router.replace('/(customer)/tabs/home');
+                }
+              }
+            ]
+          );
+          setIsLoadingOrder(false);
+          return;
+        }
+        
+        // Update stored UUID if it doesn't match
+        if (fetchedOrder.uuid && fetchedOrder.uuid !== orderUuid) {
+          console.log('🔄 Updating stored UUID:', fetchedOrder.uuid);
+          setOrderUuid(fetchedOrder.uuid);
+        }
+        
+        setOrderData(fetchedOrder);
+        setIsLoadingOrder(false);
+        
+      } catch (error: any) {
+        console.error('❌ Failed to fetch order:', error);
+        setOrderError(error.message || 'Failed to load order details');
+        setIsLoadingOrder(false);
+        
+        Alert.alert(
+          'Error Loading Order',
+          'Could not load order details. Please try again.',
+          [
+            { text: 'Retry', onPress: () => fetchOrderData() },
+            { text: 'Go Back', onPress: () => router.back() }
+          ]
+        );
+      }
+    };
+
+    fetchOrderData();
+  }, [orderId]);
 
   console.log('💳 Payment Screen State:', {
-    selectedGarments: selectedGarments.length,
+    orderId,
+    orderUuid: orderData?.uuid || orderUuid,
+    orderStatus: orderData?.status,
+    isLoadingOrder,
+    orderError,
     total,
     selectedItemsCount,
     selectedServicesCount,
-    pickupDate: pickupDate ? 'Set' : 'Not set',
-    location: location ? 'Set' : 'Not set'
+    hasOrderData: !!orderData
   });
 
   const handlePhoneNumberChange = (text: string) => {
@@ -98,7 +184,14 @@ export default function PaymentScreen() {
       return;
     }
 
-    if (!orderUuid) {
+    if (!orderData) {
+      Alert.alert('Error', 'Order data is not loaded. Please wait or go back and try again.');
+      return;
+    }
+
+    const useUuid = orderData.uuid || orderUuid;
+    
+    if (!useUuid) {
       Alert.alert('Error', 'Order UUID is missing. Please go back and try again.');
       return;
     }
@@ -107,13 +200,15 @@ export default function PaymentScreen() {
     
     try {
       console.log('💳 Processing payment for existing order:');
-      console.log('📋 Order ID (MongoDB):', orderId);
-      console.log('🆔 Order UUID:', orderUuid);
+      console.log('📋 Order ID (MongoDB):', orderData.id);
+      console.log('🆔 Order UUID:', useUuid);
+      console.log('📊 Order Status:', orderData.status);
+      console.log('💰 Order Amount:', orderData.totalAmount);
       console.log('📱 Phone number:', normalizedPhone);
       console.log('📶 Detected network:', detectedNetwork);
       
-      // Call payment initiation API (using UUID, not MongoDB ID)
-      const paymentEndpoint = `/payments/initiate/${orderUuid}`;
+      // Call payment initiation API (using UUID from fetched order)
+      const paymentEndpoint = `/payments/initiate/${useUuid}`;
       console.log('🔗 Calling payment API:', paymentEndpoint);
       
       const response = await API.post(paymentEndpoint, {
@@ -233,19 +328,51 @@ export default function PaymentScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Instructions */}
-        {/* <View style={[styles.instructionsCard, { backgroundColor: colors.card }]}>
-          <View style={styles.instructionsHeader}>
-            <Ionicons name="information-circle" size={20} color={colors.primary} />
-            <Text style={[styles.instructionsTitle, { color: colors.text }]}>
-              Complete Your Payment
-            </Text>
-          </View>
-          <Text style={[styles.instructionsText, { color: colors.textSecondary }]}>
-            Choose your preferred payment method to complete your order. Your payment is secure and encrypted.
+      {/* Loading State */}
+      {isLoadingOrder && (
+        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.text, marginTop: 16 }]}>
+            Loading order details...
           </Text>
-        </View> */}
+        </View>
+      )}
+
+      {/* Error State */}
+      {orderError && !isLoadingOrder && (
+        <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="alert-circle" size={64} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error, marginTop: 16 }]}>
+            {orderError}
+          </Text>
+          <TouchableOpacity
+            style={[styles.errorButton, { backgroundColor: colors.primary, marginTop: 20 }]}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.errorButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Main Content - Only show when order is loaded */}
+      {!isLoadingOrder && !orderError && orderData && (
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Order Status Badge */}
+        {orderData.status && (
+          <View style={[styles.statusBanner, { backgroundColor: colors.card, marginBottom: 16, padding: 16, borderRadius: 12 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="checkmark-circle" size={24} color="#27ae60" />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={[styles.statusTitle, { color: colors.text, fontSize: 16, fontWeight: '600' }]}>
+                  Order #{orderData.id.slice(-6)}
+                </Text>
+                <Text style={[styles.statusSubtitle, { color: colors.textSecondary, fontSize: 14, marginTop: 4 }]}>
+                  Status: {orderData.status}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Order Total */}
         <View style={[styles.totalCard, { backgroundColor: colors.card }]}>
@@ -318,7 +445,7 @@ export default function PaymentScreen() {
               <View style={[styles.networkBadge, { backgroundColor: '#10B981' + '15', borderColor: '#10B981' }]}>
                 <Ionicons name="checkmark-circle" size={18} color="#10B981" />
                 <Text style={[styles.networkText, { color: '#10B981' }]}>
-                  {detectedNetwork} Detected
+                  {detectedNetwork} 
                 </Text>
               </View>
             )}
@@ -370,6 +497,9 @@ export default function PaymentScreen() {
                 <View style={[styles.networkChip, { backgroundColor: '#2196F3' + '15' }]}>
                   <Text style={[styles.networkChipText, { color: '#2196F3' }]}>TTCL</Text>
                 </View>
+                <View style={[styles.networkChip, { backgroundColor: '#FFC107' + '15' }]}>
+                  <Text style={[styles.networkChipText, { color: '#FFC107' }]}>Smile</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -398,8 +528,10 @@ export default function PaymentScreen() {
           </View>
         </View>
       </ScrollView>
+      )}
 
-      {/* Payment Button */}
+      {/* Payment Button - Only show when order is loaded */}
+      {!isLoadingOrder && !orderError && orderData && (
       <View style={[
         styles.footer, 
         { 
@@ -460,6 +592,7 @@ export default function PaymentScreen() {
           </View>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* Payment Modal */}
       <Modal
@@ -1218,5 +1351,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  errorButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statusBanner: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusTitle: {
+    // Styles defined inline
+  },
+  statusSubtitle: {
+    // Styles defined inline
   },
 });

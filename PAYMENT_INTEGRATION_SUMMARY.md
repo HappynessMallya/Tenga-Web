@@ -169,7 +169,7 @@ normalizeTanzaniaPhone("755123456") // Returns: "+255755123456"
 📱 Phone input changed: { input, detectedNetwork, normalized, isValid }
 💳 Processing payment for existing order: {orderId}
 📱 Phone number: +255755123456
-📶 Detected network: Vodacom
+📶 Network: Vodacom
 🔗 Calling payment API: /payments/initiate/{orderId}
 ✅ Payment initiation response: {...}
 ```

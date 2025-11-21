@@ -21,12 +21,17 @@ import { useOrders } from '../../hooks/useOrders';
 // Components
 import { NetworkBanner } from '../../components/NetworkBanner';
 import { NotificationBadge } from '../../components/notification/NotificationBadge';
+import { DevTools } from '../../components/DevTools';
+
+// Check if we're in development mode
+const __DEV__ = process.env.NODE_ENV === 'development';
 
 export default function CustomerHomeScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const [isOnline, setIsOnline] = useState(true);
   const [isFetchingCompleteOrder, setIsFetchingCompleteOrder] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
   
   // Use real orders data
   const { 
@@ -480,6 +485,20 @@ export default function CustomerHomeScreen() {
 
       {/* Network Status Banner */}
       <NetworkBanner isVisible={!isOnline} />
+
+      {/* Dev Tools Floating Button - Only in Development */}
+      {__DEV__ && (
+        <TouchableOpacity
+          style={[styles.devToolsButton, { backgroundColor: colors.primary }]}
+          onPress={() => setShowDevTools(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="bug" size={24} color="white" />
+        </TouchableOpacity>
+      )}
+
+      {/* Dev Tools Modal */}
+      <DevTools visible={showDevTools} onClose={() => setShowDevTools(false)} />
     </SafeAreaView>
   );
 }
@@ -559,4 +578,19 @@ const styles = StyleSheet.create({
   retryButtonText: { color: 'white', fontSize: 14, fontWeight: '600', fontFamily: 'Roboto-Medium' },
   loadingContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
   loadingText: { marginTop: 8, fontSize: 14, fontFamily: 'Roboto-Regular' },
+  devToolsButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
 });

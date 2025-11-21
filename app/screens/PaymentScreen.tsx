@@ -52,6 +52,16 @@ export default function PaymentScreen() {
 
   // Parse order data
   const orderData = orderDataString ? JSON.parse(orderDataString) : null;
+  
+  // Safety check - if no order data, redirect back
+  React.useEffect(() => {
+    if (!orderData) {
+      console.warn('⚠️ Old PaymentScreen: No order data provided, redirecting...');
+      Alert.alert('Error', 'No order data found. Please try again.', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    }
+  }, [orderData]);
 
   // Local state
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(
@@ -286,6 +296,17 @@ export default function PaymentScreen() {
     router.replace('/(customer)/tabs/orders');
   };
 
+  // Early return if no order data (prevent crashes)
+  if (!orderData) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Text style={[{ color: colors.text, fontSize: 16, textAlign: 'center' }]}>
+          Loading order data...
+        </Text>
+      </View>
+    );
+  }
+
   if (createdOrderId) {
     return (
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -303,7 +324,7 @@ export default function PaymentScreen() {
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Order Total</Text>
             <Text style={[styles.summaryValue, { color: colors.text }]}>
-              {orderData.total_amount_tsh || 0} TSH
+              {orderData?.total_amount_tsh || 0} TSH
             </Text>
           </View>
 
@@ -406,7 +427,7 @@ export default function PaymentScreen() {
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Order Total</Text>
             <Text style={[styles.summaryValue, { color: colors.text }]}>
-              {orderData.total_amount_tsh || 0} TSH
+              {orderData?.total_amount_tsh || 0} TSH
             </Text>
           </View>
 
