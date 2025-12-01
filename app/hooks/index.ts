@@ -4,5 +4,6 @@ export * from './useOrders';
 export * from './useOrderStatus';
 export * from './usePayment';
 export * from './usePushNotifications';
+export * from './useResponsive';
 export * from './useSafeTheme';
 export * from './useServiceQueries';

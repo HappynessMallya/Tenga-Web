@@ -25,10 +25,14 @@ import { CreateOrderRequest } from '../types/orderCreation';
 import { formatCurrency } from '../utils/orderCalculations';
 import { detectTanzaniaNetwork, normalizeTanzaniaPhone, isValidTanzaniaPhone } from '../utils/phoneUtils';
 import API from '../api/axiosInstance';
+import { ResponsiveLayout } from '../components/ResponsiveLayout';
+import { useResponsive, useResponsivePadding } from '../hooks/useResponsive';
 
 export default function PaymentScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isWeb, isDesktop, isMobile, getValue } = useResponsive();
+  const padding = useResponsivePadding();
   
   // Get order data from order store
   const { 
@@ -300,33 +304,51 @@ export default function PaymentScreen() {
     setShowPaymentModal(true);
   };
 
+  // Responsive modal width
+  const modalWidth = getValue({
+    xs: '90%',
+    sm: '85%',
+    md: '600px',
+    lg: '650px',
+    xl: '700px',
+  }) || '90%';
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style="dark" />
 
-      {/* Header */}
-      <View style={[styles.header, { 
-        backgroundColor: colors.card,
-        paddingTop: insets.top + 16,
-        paddingBottom: 16
-      }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-            Payment
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-            Step 3 of 5
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleCancelPayment} style={styles.cancelButton}>
-            <Ionicons name="close" size={24} color={colors.error} />
+      {/* Header - Centered on desktop */}
+      <ResponsiveLayout>
+        <View style={[styles.header, { 
+          backgroundColor: colors.card,
+          paddingTop: insets.top + 16,
+          paddingBottom: 16,
+          paddingHorizontal: padding.horizontal,
+        }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={[styles.title, { 
+              color: colors.text,
+              fontSize: getValue({ xs: 20, md: 22, lg: 24 }) || 20,
+            }]} numberOfLines={1}>
+              Payment
+            </Text>
+            <Text style={[styles.subtitle, { 
+              color: colors.textSecondary,
+              fontSize: getValue({ xs: 14, md: 15, lg: 16 }) || 14,
+            }]} numberOfLines={1}>
+              Step 3 of 5
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleCancelPayment} style={styles.cancelButton}>
+              <Ionicons name="close" size={24} color={colors.error} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ResponsiveLayout>
 
       {/* Loading State */}
       {isLoadingOrder && (
@@ -356,7 +378,14 @@ export default function PaymentScreen() {
 
       {/* Main Content - Only show when order is loaded */}
       {!isLoadingOrder && !orderError && orderData && (
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: isWeb && isDesktop ? 0 : padding.horizontal,
+        }}
+      >
+        <ResponsiveLayout>
         {/* Order Status Badge */}
         {orderData.status && (
           <View style={[styles.statusBanner, { backgroundColor: colors.card, marginBottom: 16, padding: 16, borderRadius: 12 }]}>
@@ -527,22 +556,25 @@ export default function PaymentScreen() {
             </Text>
           </View>
         </View>
+        </ResponsiveLayout>
       </ScrollView>
       )}
 
       {/* Payment Button - Only show when order is loaded */}
       {!isLoadingOrder && !orderError && orderData && (
-      <View style={[
-        styles.footer, 
-        { 
-          backgroundColor: colors.card,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 1,
-        }
-      ]}>
+      <ResponsiveLayout>
+        <View style={[
+          styles.footer, 
+          { 
+            backgroundColor: colors.card,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            elevation: 1,
+            paddingHorizontal: padding.horizontal,
+          }
+        ]}>
         <TouchableOpacity
           style={[
             styles.paymentButton,
@@ -591,7 +623,8 @@ export default function PaymentScreen() {
             </View>
           </View>
         </TouchableOpacity>
-      </View>
+        </View>
+      </ResponsiveLayout>
       )}
 
       {/* Payment Modal */}
@@ -602,7 +635,14 @@ export default function PaymentScreen() {
         onRequestClose={() => setShowPaymentModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
+          <View style={[
+            styles.modalContainer, 
+            { 
+              backgroundColor: colors.card,
+              width: modalWidth,
+              maxWidth: isWeb ? 700 : undefined,
+            }
+          ]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 Confirm Payment
@@ -665,7 +705,14 @@ export default function PaymentScreen() {
         onRequestClose={() => setShowPaymentSuccessModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
+          <View style={[
+            styles.modalContainer, 
+            { 
+              backgroundColor: colors.card,
+              width: modalWidth,
+              maxWidth: isWeb ? 700 : undefined,
+            }
+          ]}>
             <View style={styles.successModalHeader}>
               <View style={styles.successIconContainer}>
                 <Ionicons name="checkmark-circle" size={64} color="#27ae60" />
@@ -740,7 +787,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -781,7 +827,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
   },
   summaryCard: {
     borderRadius: 16,
@@ -913,7 +958,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '90%',
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

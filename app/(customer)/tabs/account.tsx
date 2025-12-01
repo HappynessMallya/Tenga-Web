@@ -212,6 +212,30 @@ export default function CustomerAccountScreen() {
     (name.trim() !== (currentUser?.fullName || '') || phone.trim() !== (currentUser?.phoneNumber || '')) : 
     false;
 
+  // Simple direct logout - must be defined before settingsSections that uses it
+  const handleDirectLogout = useCallback(async () => {
+    console.log('🚪 Starting direct logout');
+    
+    try {
+      setIsLoggingOut(true);
+      
+      // Clear user data and logout
+      await signOut();
+      
+      console.log('✅ Direct logout completed');
+      
+      // Navigation will be handled by the auth state change
+      // The useEffect will detect currentUser becoming null and redirect
+    } catch (error) {
+      console.error('❌ Direct logout failed:', error);
+      
+      // Even if logout fails, try to redirect to welcome screen
+      router.replace('/(auth)/welcome');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [signOut]);
+
   // All hooks must be called before any conditional returns
   const settingsSections = useMemo(
     () => [
@@ -410,30 +434,6 @@ export default function CustomerAccountScreen() {
     console.log('🚪 Proceeding with logout');
     confirmLogout();
   }, [isLoggingOut, isEditing, hasChanges, isSaving]);
-
-  // Simple direct logout - best practice
-  const handleDirectLogout = useCallback(async () => {
-    console.log('🚪 Starting direct logout');
-    
-    try {
-      setIsLoggingOut(true);
-      
-      // Clear user data and logout
-      await signOut();
-      
-      console.log('✅ Direct logout completed');
-      
-      // Navigation will be handled by the auth state change
-      // The useEffect will detect currentUser becoming null and redirect
-    } catch (error) {
-      console.error('❌ Direct logout failed:', error);
-      
-      // Even if logout fails, try to redirect to welcome screen
-      router.replace('/(auth)/welcome');
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }, [signOut]);
 
   // Conditional rendering after all hooks are called
   // Loading state
@@ -680,7 +680,7 @@ export default function CustomerAccountScreen() {
             </View>
 
             {/* Account Status Field */}
-            <View style={styles.modernFieldGroup}>
+            {/* <View style={styles.modernFieldGroup}>
               <View style={styles.modernFieldHeader}>
                 <Icon name="shield-outline" size={16} color={colors.textSecondary} />
                 <Text style={[styles.modernFieldLabel, { color: colors.textSecondary }]}>Account Status</Text>
@@ -697,7 +697,7 @@ export default function CustomerAccountScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
+            </View> */}
 
             {/* Loyalty Points Field */}
             {currentUser.customerProfile && (

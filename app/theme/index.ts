@@ -90,6 +90,33 @@ export const spacing = {
   '3xl': 64,
 };
 
+export const breakpoints = {
+  xs: 0,    // Mobile portrait (0-640px)
+  sm: 640,  // Mobile landscape (640-768px)
+  md: 768,  // Tablet (768-1024px)
+  lg: 1024, // Desktop (1024-1280px)
+  xl: 1280, // Large desktop (1280-1536px)
+  '2xl': 1536, // Extra large desktop (1536px+)
+};
+
+export const layout = {
+  maxWidth: {
+    xs: '100%',
+    sm: '100%',
+    md: '720px',
+    lg: '960px',
+    xl: '1140px',
+    '2xl': '1320px',
+  },
+  containerPadding: {
+    xs: 16,
+    sm: 20,
+    md: 24,
+    lg: 32,
+    xl: 40,
+  },
+};
+
 export const animation = {
   duration: {
     fast: 200,
@@ -108,6 +135,8 @@ export const theme = {
   typography,
   spacing,
   animation,
+  breakpoints,
+  layout,
 };
 
 export type Theme = typeof theme;

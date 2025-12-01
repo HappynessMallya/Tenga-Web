@@ -136,13 +136,13 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       {currentLocation && (
         <View style={[styles.locationContainer, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '20' }]}>
           <View style={styles.coordinatesContainer}>
-            <Text style={[styles.coordinatesTitle, { color: colors.text }]}>📍 Coordinates</Text>
+            {/* <Text style={[styles.coordinatesTitle, { color: colors.text }]}>📍 Coordinates</Text>
             <Text style={[styles.coordinatesText, { color: colors.textSecondary }]}>
               Lat: {currentLocation.latitude}
             </Text>
             <Text style={[styles.coordinatesText, { color: colors.textSecondary }]}>
               Lng: {currentLocation.longitude}
-            </Text>
+            </Text> */}
             {/* {currentLocation.accuracy && (
               <Text style={[styles.accuracyText, { color: colors.textSecondary }]}>
                 Accuracy: {Math.round(currentLocation.accuracy)}m
@@ -151,7 +151,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           </View>
 
           <View style={styles.addressContainer}>
-            <Text style={[styles.addressTitle, { color: colors.text }]}>🏠 Detected Address</Text>
+            <Text style={[styles.addressTitle, { color: colors.text }]}>🏠 Address</Text>
             <Text style={[styles.addressText, { color: colors.textSecondary }]}>
               Street: {currentLocation.streetName}
             </Text>
@@ -161,9 +161,9 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             {/* <Text style={[styles.addressText, { color: colors.textSecondary }]}>
               Postcode: {currentLocation.postCode}
             </Text> */}
-            <Text style={[styles.addressText, { color: colors.textSecondary }]}>
+            {/* <Text style={[styles.addressText, { color: colors.textSecondary }]}>
               Landmark: {currentLocation.landMark}
-            </Text>
+            </Text> */}
           </View>
 
           {/* Action Buttons */}
