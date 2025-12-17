@@ -79,14 +79,14 @@ export const useGarmentConfig = () => {
 
   const addGarmentToSelection = (garmentType: SimplifiedGarmentType, serviceType: ServiceType, quantity: number = 1): void => {
     console.log('➕ useGarmentConfig: Adding garment to selection:', garmentType.name, serviceType, quantity);
-    
+
     const unitPrice = getServicePricing(garmentType, serviceType);
     if (unitPrice !== null) {
       // Check if this garment type and service type combination already exists
       const existingIndex = store.selectedGarments.findIndex(
         item => item.garmentTypeId === garmentType.id && item.serviceType === serviceType
       );
-      
+
       if (existingIndex !== -1) {
         // If it exists, increment the quantity
         console.log('🔄 useGarmentConfig: Incrementing existing garment quantity');
@@ -107,7 +107,7 @@ export const useGarmentConfig = () => {
           unitPrice,
           totalPrice: unitPrice * quantity,
         };
-        
+
         store.addGarment(selectedGarment);
         console.log('✅ useGarmentConfig: New garment added successfully');
       }
@@ -144,11 +144,11 @@ export const useGarmentConfig = () => {
 
   const needsRefresh = (): boolean => {
     if (!store.lastUpdated) return true;
-    
+
     const lastUpdated = new Date(store.lastUpdated);
     const now = new Date();
     const hoursSinceUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-    
+
     const needsRefresh = hoursSinceUpdate > 24; // Refresh if older than 24 hours
     console.log('🕒 useGarmentConfig: Needs refresh:', needsRefresh, 'Hours since update:', hoursSinceUpdate);
     return needsRefresh;
@@ -162,13 +162,13 @@ export const useGarmentConfig = () => {
     error: store.error,
     lastUpdated: store.lastUpdated,
     businessId: store.businessId,
-    
+
     // Actions
     fetchGarmentConfig: store.fetchGarmentConfig,
     refreshGarmentConfig: store.refreshGarmentConfig,
     clearError: store.clearError,
     resetGarmentConfig: store.resetGarmentConfig,
-    
+
     // Helper functions
     getCategories,
     getCategoryById,
@@ -184,6 +184,7 @@ export const useGarmentConfig = () => {
     updateGarmentQuantity,
     updateGarmentService,
     clearSelection,
+    clearSelectedGarments: clearSelection, // Alias for backwards compatibility
     isConfigLoaded,
     needsRefresh,
   };

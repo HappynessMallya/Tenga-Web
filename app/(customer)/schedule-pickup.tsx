@@ -324,7 +324,8 @@ export default function SchedulePickupScreen() {
     categories,
     isLoading,
     error,
-    fetchGarmentConfig
+    fetchGarmentConfig,
+    clearSelection
   } = useGarmentConfig();
   const [activeTab, setActiveTab] = useState<string>('');
 
@@ -351,6 +352,22 @@ export default function SchedulePickupScreen() {
       console.log('⏭️ SchedulePickup: Skipping fetch - categories:', categories.length, 'loading:', isLoading, 'error:', error);
     }
   }, []);
+
+  // Clear invalid garments on load (ones with old service types)
+  useEffect(() => {
+    if (selectedGarments.length > 0 && categories.length > 0) {
+      const validServiceTypes: ServiceType[] = ['LAUNDRY', 'WASH_PRESS', 'DRY_CLEAN', 'IRON_ONLY'];
+      const hasInvalidGarments = selectedGarments.some(
+        garment => !validServiceTypes.includes(garment.serviceType)
+      );
+
+      if (hasInvalidGarments) {
+        console.log('🗑️ SchedulePickup: Found invalid garments with old service types, clearing all');
+        console.log('⚠️ Old service types detected - clearing cache to prevent errors');
+        clearSelection();
+      }
+    }
+  }, [categories]);
 
   const handleAddGarment = (garmentType: SimplifiedGarmentType, serviceType: ServiceType) => {
     console.log('➕ Adding garment:', garmentType.name, serviceType);
@@ -381,6 +398,31 @@ export default function SchedulePickupScreen() {
     } else {
       console.log('❌ Garment not found to remove');
     }
+  };
+
+  const handleClearAll = () => {
+    if (selectedGarments.length === 0) {
+      return;
+    }
+
+    Alert.alert(
+      'Clear All Items',
+      `Are you sure you want to remove all ${selectedGarments.length} item${selectedGarments.length !== 1 ? 's' : ''} from your selection?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: () => {
+            console.log('🗑️ Clearing all selected garments');
+            clearSelection();
+          }
+        }
+      ]
+    );
   };
 
   const handleContinue = () => {
@@ -471,6 +513,17 @@ export default function SchedulePickupScreen() {
           </Text>
         </View>
         <View style={styles.headerActions}>
+          {selectedGarments.length > 0 && (
+            <TouchableOpacity
+              style={[styles.clearButton, { marginRight: 8 }]}
+              onPress={handleClearAll}
+            >
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              <Text style={[styles.clearButtonText, { color: '#ef4444' }]}>
+                Clear
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.helpButton}>
             <Ionicons name="help-circle-outline" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -688,6 +741,19 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  clearButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   helpButton: {
     padding: 8,
