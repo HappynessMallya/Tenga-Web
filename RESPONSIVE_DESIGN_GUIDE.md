@@ -560,3 +560,4 @@ Check out these screens for responsive design examples:
 
 **Need help?** Check the implementation in `app/hooks/useResponsive.ts` and `app/components/ResponsiveLayout.tsx` for more details.
 
+

@@ -3,8 +3,8 @@
  * TypeScript interfaces for the garment configuration API response
  */
 
-// Service types for pricing
-export type ServiceType = 'WASH_FOLD' | 'DRY_CLEAN' | 'HANG_DRY' | 'IRON_ONLY';
+// Service types for pricing (must match API response)
+export type ServiceType = 'LAUNDRY' | 'WASH_PRESS' | 'DRY_CLEAN' | 'IRON_ONLY';
 
 // Pricing information for each service type
 export interface ServicePricing {

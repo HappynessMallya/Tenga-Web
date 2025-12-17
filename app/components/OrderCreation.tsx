@@ -117,13 +117,13 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
     categoryName: string;
     garmentTypeId: string;
     garmentTypeName: string;
-    serviceType: 'WASH_FOLD' | 'DRY_CLEAN' | 'HANG_DRY' | 'IRON_ONLY';
+    serviceType: 'LAUNDRY' | 'WASH_PRESS' | 'DRY_CLEAN' | 'IRON_ONLY';
     quantity: number;
     unitPrice: number;
     totalPrice: number;
   }) => {
     console.log('➕ OrderCreation: Garment selected:', garment);
-    
+
     addGarmentToOrder(
       garment.garmentTypeId,
       garment.serviceType,
@@ -132,14 +132,14 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
       0.5, // Default weight
       garment.unitPrice
     );
-    
+
     setShowGarmentSelection(false);
   };
 
   // Handle order creation
   const handleCreateOrder = async () => {
     console.log('🚀 OrderCreation: Creating order');
-    
+
     if (!isOrderReady()) {
       console.log('❌ OrderCreation: Order not ready for submission');
       Alert.alert('Incomplete Order', 'Please complete all required fields before submitting.');
@@ -160,7 +160,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
   // Handle cancel
   const handleCancel = () => {
     console.log('❌ OrderCreation: Cancelling order creation');
-    
+
     if (selectedItems.length > 0 || notes.trim() || tags.length > 0) {
       Alert.alert(
         'Cancel Order Creation',
@@ -213,7 +213,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
           Weight: {item.weightLbs * item.quantity} lbs
         </Text>
       </View>
-      
+
       <View style={styles.orderItemActions}>
         <View style={styles.quantityControls}>
           <TouchableOpacity
@@ -222,11 +222,11 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
           >
             <Ionicons name="remove" size={16} color={colors.text} />
           </TouchableOpacity>
-          
+
           <Text style={[styles.quantityText, { color: colors.text }]}>
             {item.quantity}
           </Text>
-          
+
           <TouchableOpacity
             style={[styles.quantityButton, { backgroundColor: colors.border }]}
             onPress={() => updateGarmentQuantity(index, item.quantity + 1)}
@@ -234,11 +234,11 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
             <Ionicons name="add" size={16} color={colors.text} />
           </TouchableOpacity>
         </View>
-        
+
         <Text style={[styles.orderItemPrice, { color: colors.primary }]}>
           ${getItemTotal(index)}
         </Text>
-        
+
         <TouchableOpacity
           style={styles.removeButton}
           onPress={() => removeGarmentFromOrder(index)}
@@ -253,7 +253,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
   const renderTags = () => (
     <View style={styles.tagsContainer}>
       <Text style={[styles.tagsLabel, { color: colors.text }]}>Tags</Text>
-      
+
       <View style={styles.tagsList}>
         {tags.map((tag, index) => (
           <View key={index} style={[styles.tag, { backgroundColor: colors.primary + '20' }]}>
@@ -264,13 +264,13 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
           </View>
         ))}
       </View>
-      
+
       <View style={styles.addTagContainer}>
         <TextInput
-          style={[styles.tagInput, { 
+          style={[styles.tagInput, {
             backgroundColor: colors.background,
             borderColor: colors.border,
-            color: colors.text 
+            color: colors.text
           }]}
           placeholder="Add tag..."
           placeholderTextColor={colors.textSecondary}
@@ -315,7 +315,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>
@@ -371,10 +371,10 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
             Order Notes
           </Text>
           <TextInput
-            style={[styles.notesInput, { 
+            style={[styles.notesInput, {
               backgroundColor: colors.card,
               borderColor: colors.border,
-              color: colors.text 
+              color: colors.text
             }]}
             placeholder="Add any special instructions..."
             placeholderTextColor={colors.textSecondary}
@@ -393,7 +393,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
           <Text style={[styles.summaryTitle, { color: colors.text }]}>
             Order Summary
           </Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
               Items:
@@ -402,7 +402,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
               {getTotalItems()}
             </Text>
           </View>
-          
+
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
               Total Weight:
@@ -411,7 +411,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
               {getTotalWeight()} lbs
             </Text>
           </View>
-          
+
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={[styles.totalLabel, { color: colors.text }]}>
               Estimated Total:
@@ -465,7 +465,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            
+
             <GarmentSelection
               businessId={businessId}
               onGarmentSelected={handleGarmentSelected}
@@ -481,51 +481,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  
+
   content: {
     padding: 16,
   },
-  
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
   },
-  
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   cancelButton: {
     padding: 8,
   },
-  
+
   section: {
     marginBottom: 24,
   },
-  
+
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   locationText: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
     marginTop: 8,
   },
-  
+
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -534,57 +534,57 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 4,
   },
-  
+
   addButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   itemsList: {
     gap: 12,
   },
-  
+
   orderItem: {
     padding: 16,
     borderRadius: 12,
   },
-  
+
   orderItemContent: {
     marginBottom: 12,
   },
-  
+
   orderItemName: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 4,
   },
-  
+
   orderItemDetails: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
     marginBottom: 2,
   },
-  
+
   orderItemWeight: {
     fontSize: 12,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   orderItemActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  
+
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  
+
   quantityButton: {
     width: 32,
     height: 32,
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   quantityText: {
     fontSize: 16,
     fontWeight: '600',
@@ -600,29 +600,29 @@ const styles = StyleSheet.create({
     minWidth: 24,
     textAlign: 'center',
   },
-  
+
   orderItemPrice: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   removeButton: {
     padding: 8,
   },
-  
+
   emptyItems: {
     alignItems: 'center',
     padding: 32,
     borderRadius: 12,
   },
-  
+
   emptyItemsText: {
     fontSize: 16,
     fontFamily: 'Roboto-Regular',
     marginTop: 12,
   },
-  
+
   notesInput: {
     borderWidth: 1,
     borderRadius: 8,
@@ -631,25 +631,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto-Regular',
     textAlignVertical: 'top',
   },
-  
+
   tagsContainer: {
     marginBottom: 24,
   },
-  
+
   tagsLabel: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 12,
   },
-  
+
   tagsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 12,
   },
-  
+
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -658,17 +658,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 4,
   },
-  
+
   tagText: {
     fontSize: 12,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   addTagContainer: {
     flexDirection: 'row',
     gap: 8,
   },
-  
+
   tagInput: {
     flex: 1,
     borderWidth: 1,
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   addTagButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -686,83 +686,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   summary: {
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
   },
-  
+
   summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 16,
   },
-  
+
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  
+
   summaryLabel: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   summaryValue: {
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   totalRow: {
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     paddingTop: 8,
     marginTop: 8,
   },
-  
+
   totalLabel: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   totalValue: {
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   errorContainer: {
     padding: 16,
     borderRadius: 8,
     marginBottom: 24,
   },
-  
+
   errorTitle: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 8,
   },
-  
+
   errorText: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
     marginBottom: 4,
   },
-  
+
   actions: {
     marginBottom: 32,
   },
-  
+
   createButton: {
     paddingVertical: 16,
   },
-  
+
   modalOverlay: {
     position: 'absolute',
     top: 0,
@@ -773,14 +773,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   modalContent: {
     width: '90%',
     maxHeight: '80%',
     borderRadius: 12,
     overflow: 'hidden',
   },
-  
+
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -789,13 +789,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  
+
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   closeButton: {
     padding: 4,
   },

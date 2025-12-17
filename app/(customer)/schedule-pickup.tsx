@@ -22,38 +22,38 @@ import { ErrorView } from '../components/ErrorView';
 import { SimplifiedGarmentType, ServiceType } from '../types/garment';
 
 // Premium service configuration with luxury colors and sophisticated design
-const SERVICE_TYPES: { [key in ServiceType]: { 
-  label: string; 
-  color: string; 
-  icon: string; 
+const SERVICE_TYPES: { [key in ServiceType]: {
+  label: string;
+  color: string;
+  icon: string;
   emoji: string;
   description: string;
 } } = {
-  WASH_FOLD: { 
-    label: 'Wash & Fold', 
-    color: '#2c3e50', 
-    icon: 'refresh', 
+  LAUNDRY: {
+    label: 'Laundry',
+    color: '#2c3e50',
+    icon: 'refresh',
     emoji: '🧺',
-    description: 'Professional cleaning and folding'
+    description: 'Standard washing service'
   },
-  DRY_CLEAN: { 
-    label: 'Dry Clean', 
-    color: '#34495e', 
-    icon: 'snow', 
+  WASH_PRESS: {
+    label: 'Wash & Press',
+    color: '#2c3e50',
+    icon: 'checkmark-circle',
+    emoji: '👕',
+    description: 'Washing with professional pressing'
+  },
+  DRY_CLEAN: {
+    label: 'Dry Clean',
+    color: '#34495e',
+    icon: 'snow',
     emoji: '✨',
     description: 'Expert dry cleaning service'
   },
-  HANG_DRY: { 
-    label: 'Hang Dry', 
-    color: '#2c3e50', 
-    icon: 'sunny', 
-    emoji: '🌿',
-    description: 'Gentle air drying'
-  },
-  IRON_ONLY: { 
-    label: 'Press Only', 
-    color: '#2c2c2c', 
-    icon: 'flame', 
+  IRON_ONLY: {
+    label: 'Press Only',
+    color: '#2c2c2c',
+    icon: 'flame',
     emoji: '👔',
     description: 'Professional pressing service'
   },
@@ -74,12 +74,12 @@ const getIconForGarmentType = (typeKey: string): string => {
 };
 
 // Garment Card Component with Dropdown
-const GarmentCard = ({ 
-  garmentType, 
-  selectedGarments, 
-  onAddGarment, 
-  onRemoveGarment, 
-  colors 
+const GarmentCard = ({
+  garmentType,
+  selectedGarments,
+  onAddGarment,
+  onRemoveGarment,
+  colors
 }: {
   garmentType: SimplifiedGarmentType;
   selectedGarments: any[];
@@ -89,7 +89,7 @@ const GarmentCard = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const availableServices = Object.keys(garmentType.pricing) as ServiceType[];
-  
+
   const getQuantityForService = (serviceType: ServiceType): number => {
     const selected = selectedGarments.find(
       item => item.garmentTypeId === garmentType.id && item.serviceType === serviceType
@@ -106,8 +106,8 @@ const GarmentCard = ({
 
   return (
     <View style={[
-      styles.garmentCard, 
-      { 
+      styles.garmentCard,
+      {
         backgroundColor: colors.card,
         borderColor: totalSelected > 0 ? '#2c3e50' : '#e8e8e8',
         borderWidth: totalSelected > 0 ? 1 : 0.5,
@@ -117,15 +117,15 @@ const GarmentCard = ({
         elevation: totalSelected > 0 ? 3 : 1,
       }
     ]}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.garmentHeader}
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
         <View style={styles.garmentInfo}>
           <View style={[
-            styles.garmentIcon, 
-            { 
+            styles.garmentIcon,
+            {
               backgroundColor: totalSelected > 0 ? '#2c3e50' : '#f8f9fa',
               shadowColor: '#2c3e50',
               shadowOpacity: 0.1,
@@ -133,16 +133,16 @@ const GarmentCard = ({
               elevation: 2,
             }
           ]}>
-            <Ionicons 
-              name={getIconForGarmentType(garmentType.name) as any} 
-              size={22} 
-              color={totalSelected > 0 ? 'white' : '#2c3e50'} 
+            <Ionicons
+              name={getIconForGarmentType(garmentType.name) as any}
+              size={22}
+              color={totalSelected > 0 ? 'white' : '#2c3e50'}
             />
           </View>
           <View style={styles.garmentDetails}>
             <Text style={[
-              styles.garmentName, 
-              { 
+              styles.garmentName,
+              {
                 color: totalSelected > 0 ? '#2c3e50' : colors.text,
                 fontWeight: totalSelected > 0 ? '600' : '500',
                 letterSpacing: 0.3,
@@ -170,10 +170,10 @@ const GarmentCard = ({
           </View>
         </View>
         <View style={styles.garmentActions}>
-          <Ionicons 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color={colors.textSecondary} 
+          <Ionicons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
@@ -181,132 +181,132 @@ const GarmentCard = ({
       {isExpanded && (
         <View style={styles.serviceTypesContainer}>
           {availableServices.map((serviceType) => {
-          const serviceConfig = SERVICE_TYPES[serviceType];
-          const quantity = getQuantityForService(serviceType);
-          const price = garmentType.pricing[serviceType]?.amount || 0;
-          const isSelected = quantity > 0;
-          
-          return (
-            <TouchableOpacity
-              key={serviceType}
-              style={[
-                styles.serviceTypeRow,
-                {
-                  backgroundColor: isSelected ? '#f8f9fa' : colors.background,
-                  borderColor: isSelected ? '#2c3e50' : '#e8e8e8',
-                  borderWidth: isSelected ? 1 : 0.5,
-                  shadowColor: isSelected ? '#2c3e50' : 'transparent',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isSelected ? 0.05 : 0,
-                  shadowRadius: 4,
-                  elevation: isSelected ? 2 : 0,
-                }
-              ]}
-              onPress={() => onAddGarment(garmentType, serviceType)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.serviceInfo}>
-                <Text style={styles.serviceEmoji}>
-                  {serviceConfig.emoji}
-                </Text>
-                <View style={styles.serviceDetails}>
-                  <Text style={[
-                    styles.serviceLabel, 
-                    { 
-                      color: isSelected ? '#2c3e50' : colors.text,
-                      fontWeight: isSelected ? '600' : '500',
-                      letterSpacing: 0.2,
-                    }
-                  ]}>
-                    {serviceConfig.label}
+            const serviceConfig = SERVICE_TYPES[serviceType];
+            const quantity = getQuantityForService(serviceType);
+            const price = garmentType.pricing[serviceType]?.amount || 0;
+            const isSelected = quantity > 0;
+
+            return (
+              <TouchableOpacity
+                key={serviceType}
+                style={[
+                  styles.serviceTypeRow,
+                  {
+                    backgroundColor: isSelected ? '#f8f9fa' : colors.background,
+                    borderColor: isSelected ? '#2c3e50' : '#e8e8e8',
+                    borderWidth: isSelected ? 1 : 0.5,
+                    shadowColor: isSelected ? '#2c3e50' : 'transparent',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isSelected ? 0.05 : 0,
+                    shadowRadius: 4,
+                    elevation: isSelected ? 2 : 0,
+                  }
+                ]}
+                onPress={() => onAddGarment(garmentType, serviceType)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceEmoji}>
+                    {serviceConfig.emoji}
                   </Text>
-                  <Text style={[
-                    styles.serviceDescription, 
-                    { 
-                      color: colors.textSecondary,
-                      fontSize: 12,
-                      marginTop: 2,
-                    }
-                  ]}>
-                    {serviceConfig.description}
-                  </Text>
-                  <Text style={[
-                    styles.servicePrice, 
-                    { 
-                      color: isSelected ? '#2c3e50' : colors.primary,
-                      fontWeight: isSelected ? '600' : '500',
-                      letterSpacing: 0.3,
-                    }
-                  ]}>
-                    {formatCurrency(price)}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.quantityControls}>
-                {quantity > 0 && (
-                  <>
-                    <TouchableOpacity
-                      style={[
-                        styles.quantityButton, 
-                        { 
-                          backgroundColor: '#2c3e50',
-                          shadowColor: '#2c3e50',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.15,
-                          shadowRadius: 3,
-                          elevation: 2,
-                        }
-                      ]}
-                      onPress={() => onRemoveGarment(garmentType, serviceType)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="remove" size={16} color="white" />
-                    </TouchableOpacity>
-                    <View style={[
-                      styles.quantityBadge, 
-                      { 
-                        backgroundColor: '#2c3e50',
-                        shadowColor: '#2c3e50',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 2,
-                        elevation: 1,
+                  <View style={styles.serviceDetails}>
+                    <Text style={[
+                      styles.serviceLabel,
+                      {
+                        color: isSelected ? '#2c3e50' : colors.text,
+                        fontWeight: isSelected ? '600' : '500',
+                        letterSpacing: 0.2,
                       }
                     ]}>
-                      <Text style={styles.quantityText}>
-                        {quantity}
-                      </Text>
-                    </View>
-                  </>
-                )}
-                <TouchableOpacity
-                  style={[
-                    styles.addButton, 
-                    { 
-                      backgroundColor: isSelected ? '#2c3e50' : '#f8f9fa',
-                      borderColor: '#2c3e50',
-                      borderWidth: 1,
-                      shadowColor: '#2c3e50',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isSelected ? 0.15 : 0.05,
-                      shadowRadius: 3,
-                      elevation: isSelected ? 2 : 1,
-                    }
-                  ]}
-                  onPress={() => onAddGarment(garmentType, serviceType)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons 
-                    name="add" 
-                    size={16} 
-                    color={isSelected ? 'white' : '#2c3e50'} 
-                  />
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+                      {serviceConfig.label}
+                    </Text>
+                    <Text style={[
+                      styles.serviceDescription,
+                      {
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                        marginTop: 2,
+                      }
+                    ]}>
+                      {serviceConfig.description}
+                    </Text>
+                    <Text style={[
+                      styles.servicePrice,
+                      {
+                        color: isSelected ? '#2c3e50' : colors.primary,
+                        fontWeight: isSelected ? '600' : '500',
+                        letterSpacing: 0.3,
+                      }
+                    ]}>
+                      {formatCurrency(price)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.quantityControls}>
+                  {quantity > 0 && (
+                    <>
+                      <TouchableOpacity
+                        style={[
+                          styles.quantityButton,
+                          {
+                            backgroundColor: '#2c3e50',
+                            shadowColor: '#2c3e50',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.15,
+                            shadowRadius: 3,
+                            elevation: 2,
+                          }
+                        ]}
+                        onPress={() => onRemoveGarment(garmentType, serviceType)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="remove" size={16} color="white" />
+                      </TouchableOpacity>
+                      <View style={[
+                        styles.quantityBadge,
+                        {
+                          backgroundColor: '#2c3e50',
+                          shadowColor: '#2c3e50',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 2,
+                          elevation: 1,
+                        }
+                      ]}>
+                        <Text style={styles.quantityText}>
+                          {quantity}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.addButton,
+                      {
+                        backgroundColor: isSelected ? '#2c3e50' : '#f8f9fa',
+                        borderColor: '#2c3e50',
+                        borderWidth: 1,
+                        shadowColor: '#2c3e50',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: isSelected ? 0.15 : 0.05,
+                        shadowRadius: 3,
+                        elevation: isSelected ? 2 : 1,
+                      }
+                    ]}
+                    onPress={() => onAddGarment(garmentType, serviceType)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="add"
+                      size={16}
+                      color={isSelected ? 'white' : '#2c3e50'}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </View>
@@ -316,7 +316,7 @@ const GarmentCard = ({
 export default function SchedulePickupScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { 
+  const {
     selectedGarments,
     addGarmentToSelection,
     removeGarmentFromSelection,
@@ -343,7 +343,7 @@ export default function SchedulePickupScreen() {
       isLoading,
       error,
     });
-    
+
     if (categories.length === 0 && !isLoading && !error) {
       console.log('🚀 SchedulePickup: Fetching garment config with businessId: 68d2971b2fc5bd3f6a4b5ed9');
       fetchGarmentConfig('68d2971b2fc5bd3f6a4b5ed9');
@@ -359,12 +359,12 @@ export default function SchedulePickupScreen() {
 
   const handleRemoveGarment = (garmentType: SimplifiedGarmentType, serviceType: ServiceType) => {
     console.log('➖ Removing garment:', garmentType.name, serviceType);
-    
+
     // Find the existing garment
     const existingIndex = selectedGarments.findIndex(
       item => item.garmentTypeId === garmentType.id && item.serviceType === serviceType
     );
-    
+
     if (existingIndex !== -1) {
       const existingGarment = selectedGarments[existingIndex];
       if (existingGarment.quantity > 1) {
@@ -454,7 +454,7 @@ export default function SchedulePickupScreen() {
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View style={[styles.header, { 
+      <View style={[styles.header, {
         backgroundColor: colors.card,
         paddingTop: insets.top + 16,
         paddingBottom: 16
@@ -466,9 +466,9 @@ export default function SchedulePickupScreen() {
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             Select Garments
           </Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-              Step 1 of 5
-            </Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+            Step 1 of 5
+          </Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.helpButton}>
@@ -480,8 +480,8 @@ export default function SchedulePickupScreen() {
       {/* Category Tabs */}
       {categories.length > 0 && (
         <View style={[styles.tabsContainer, { backgroundColor: colors.card }]}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsContent}
             decelerationRate="normal"
@@ -576,8 +576,8 @@ export default function SchedulePickupScreen() {
 
       {/* Continue Button */}
       <View style={[
-        styles.footer, 
-        { 
+        styles.footer,
+        {
           backgroundColor: colors.card,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -1 },

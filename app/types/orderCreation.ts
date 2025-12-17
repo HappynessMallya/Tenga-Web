@@ -15,7 +15,7 @@ export interface CustomerLocation {
 // Order item for creation
 export interface CreateOrderItem {
   garmentTypeId: string;
-  serviceType: 'WASH_FOLD' | 'DRY_CLEAN' | 'HANG_DRY' | 'IRON_ONLY';
+  serviceType: 'LAUNDRY' | 'WASH_PRESS' | 'DRY_CLEAN' | 'IRON_ONLY';
   description: string;
   quantity: number;
   weightLbs: number;

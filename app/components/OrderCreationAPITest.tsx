@@ -61,8 +61,8 @@ export const OrderCreationAPITest: React.FC = () => {
   const sampleItems: CreateOrderItem[] = [
     {
       garmentTypeId: 'shirt',
-      serviceType: 'WASH_FOLD',
-      description: 'Red dress — dry clean',
+      serviceType: 'LAUNDRY',
+      description: 'Red dress — laundry service',
       quantity: 1,
       weightLbs: 0.5,
       price: 15.99,
@@ -72,7 +72,7 @@ export const OrderCreationAPITest: React.FC = () => {
   // Handle test order creation
   const handleTestOrderCreation = () => {
     console.log('🧪 OrderCreationAPITest: Testing order creation');
-    
+
     // Set sample data
     setCustomerLocationFromAddress(
       sampleLocation.latitude,
@@ -162,7 +162,7 @@ export const OrderCreationAPITest: React.FC = () => {
         <Text style={[styles.summaryTitle, { color: colors.text }]}>
           Current Order Summary
         </Text>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Location:
@@ -171,7 +171,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {summary.customerLocation}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Items:
@@ -180,7 +180,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {summary.itemsCount}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Total Weight:
@@ -189,7 +189,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {getTotalWeight()} lbs
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Total Items:
@@ -198,7 +198,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {getTotalItems()}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Estimated Total:
@@ -207,7 +207,7 @@ export const OrderCreationAPITest: React.FC = () => {
             ${summary.estimatedTotal}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Pickup Time:
@@ -216,7 +216,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {summary.pickupTime}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Delivery Time:
@@ -225,7 +225,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {summary.deliveryTime}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Notes:
@@ -234,7 +234,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {summary.notes}
           </Text>
         </View>
-        
+
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
             Tags:
@@ -274,7 +274,7 @@ export const OrderCreationAPITest: React.FC = () => {
         <Text style={[styles.orderDetailsTitle, { color: colors.text }]}>
           Order Details
         </Text>
-        
+
         <View style={styles.orderDetailsRow}>
           <Text style={[styles.orderDetailsLabel, { color: colors.textSecondary }]}>
             Order ID:
@@ -283,7 +283,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {order.id}
           </Text>
         </View>
-        
+
         <View style={styles.orderDetailsRow}>
           <Text style={[styles.orderDetailsLabel, { color: colors.textSecondary }]}>
             Status:
@@ -292,7 +292,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {order.status}
           </Text>
         </View>
-        
+
         <View style={styles.orderDetailsRow}>
           <Text style={[styles.orderDetailsLabel, { color: colors.textSecondary }]}>
             Customer:
@@ -301,7 +301,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {order.customer.user.fullName}
           </Text>
         </View>
-        
+
         <View style={styles.orderDetailsRow}>
           <Text style={[styles.orderDetailsLabel, { color: colors.textSecondary }]}>
             Total Amount:
@@ -310,7 +310,7 @@ export const OrderCreationAPITest: React.FC = () => {
             {pricing?.currency} {pricing?.totalAmount}
           </Text>
         </View>
-        
+
         <View style={styles.orderDetailsRow}>
           <Text style={[styles.orderDetailsLabel, { color: colors.textSecondary }]}>
             Created At:
@@ -326,7 +326,7 @@ export const OrderCreationAPITest: React.FC = () => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>
@@ -342,7 +342,7 @@ export const OrderCreationAPITest: React.FC = () => {
           <Text style={[styles.statusTitle, { color: colors.text }]}>
             API Status
           </Text>
-          
+
           <View style={styles.statusRow}>
             <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
               Loading:
@@ -351,7 +351,7 @@ export const OrderCreationAPITest: React.FC = () => {
               {isLoading ? 'Yes' : 'No'}
             </Text>
           </View>
-          
+
           <View style={styles.statusRow}>
             <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
               Success:
@@ -360,7 +360,7 @@ export const OrderCreationAPITest: React.FC = () => {
               {success ? 'Yes' : 'No'}
             </Text>
           </View>
-          
+
           <View style={styles.statusRow}>
             <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
               Order ID:
@@ -369,7 +369,7 @@ export const OrderCreationAPITest: React.FC = () => {
               {orderId || 'None'}
             </Text>
           </View>
-          
+
           <View style={styles.statusRow}>
             <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
               Can Submit:
@@ -378,7 +378,7 @@ export const OrderCreationAPITest: React.FC = () => {
               {canSubmit ? 'Yes' : 'No'}
             </Text>
           </View>
-          
+
           {error && (
             <View style={styles.errorRow}>
               <Text style={[styles.errorLabel, { color: colors.error }]}>
@@ -401,7 +401,7 @@ export const OrderCreationAPITest: React.FC = () => {
             <Ionicons name="flask" size={20} color="white" />
             <Text style={styles.actionButtonText}>Load Test Data</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.secondary }]}
             onPress={() => setShowOrderCreation(!showOrderCreation)}
@@ -411,7 +411,7 @@ export const OrderCreationAPITest: React.FC = () => {
               {showOrderCreation ? 'Hide Creation Form' : 'Show Creation Form'}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.error }]}
             onPress={handleClearTestData}
@@ -457,57 +457,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  
+
   content: {
     padding: 16,
   },
-  
+
   header: {
     marginBottom: 24,
   },
-  
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Roboto-Bold',
     marginBottom: 8,
   },
-  
+
   subtitle: {
     fontSize: 16,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   statusContainer: {
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
   },
-  
+
   statusTitle: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 12,
   },
-  
+
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  
+
   statusLabel: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   statusValue: {
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   errorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -516,12 +516,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
   },
-  
+
   errorLabel: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   errorValue: {
     fontSize: 14,
     fontWeight: '600',
@@ -529,14 +529,14 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-  
+
   actionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 24,
     gap: 12,
   },
-  
+
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -545,113 +545,113 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  
+
   actionButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   orderCreationContainer: {
     marginBottom: 24,
   },
-  
+
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 16,
   },
-  
+
   summarySection: {
     marginBottom: 24,
   },
-  
+
   summaryContainer: {
     padding: 16,
     borderRadius: 12,
   },
-  
+
   summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 16,
   },
-  
+
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  
+
   summaryLabel: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   summaryValue: {
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
   },
-  
+
   emptyState: {
     alignItems: 'center',
     padding: 32,
     borderRadius: 12,
   },
-  
+
   emptyStateText: {
     fontSize: 16,
     fontFamily: 'Roboto-Regular',
     marginTop: 12,
   },
-  
+
   errorContainer: {
     padding: 16,
     borderRadius: 8,
     marginBottom: 24,
   },
-  
+
   errorTitle: {
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 8,
   },
-  
+
   errorText: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
     marginBottom: 4,
   },
-  
+
   orderDetails: {
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
   },
-  
+
   orderDetailsTitle: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Roboto-Bold',
     marginBottom: 16,
   },
-  
+
   orderDetailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  
+
   orderDetailsLabel: {
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
   },
-  
+
   orderDetailsValue: {
     fontSize: 14,
     fontWeight: '600',

@@ -8,17 +8,17 @@ import { GarmentConfigResponse, GarmentConfig, SimplifiedGarmentCategory, Simpli
 
 // Service type names for display
 export const SERVICE_TYPE_NAMES: Record<ServiceType, string> = {
-  WASH_FOLD: 'Wash & Fold',
+  LAUNDRY: 'Laundry',
+  WASH_PRESS: 'Wash & Press',
   DRY_CLEAN: 'Dry Clean',
-  HANG_DRY: 'Hang Dry',
   IRON_ONLY: 'Iron Only',
 };
 
 // Service type descriptions
 export const SERVICE_TYPE_DESCRIPTIONS: Record<ServiceType, string> = {
-  WASH_FOLD: 'Standard washing and folding service',
+  LAUNDRY: 'Standard washing service',
+  WASH_PRESS: 'Washing with pressing service',
   DRY_CLEAN: 'Professional dry cleaning service',
-  HANG_DRY: 'Wash and hang dry service',
   IRON_ONLY: 'Ironing service only',
 };
 
@@ -31,17 +31,17 @@ export const garmentConfigService = {
     try {
       console.log('🌐 GarmentConfigService: getGarmentConfig called');
       console.log('🏢 Business ID:', businessId);
-      
+
       const url = `/garment-config/${businessId}`;
       console.log('🔗 GarmentConfigService: Making request to URL:', url);
-      
+
       const response = await API.get(url);
-      
+
       console.log('📦 GarmentConfigService: Raw response received:');
       console.log('📊 Status:', response.status);
       console.log('📋 Headers:', response.headers);
       console.log('📄 Data:', JSON.stringify(response.data, null, 2));
-      
+
       return response.data;
     } catch (error: any) {
       console.error('❌ GarmentConfigService: Failed to fetch garment config:', error);
@@ -56,7 +56,7 @@ export const garmentConfigService = {
           headers: error.config?.headers
         }
       });
-      
+
       // Handle specific error cases
       if (error.response?.status === 401) {
         console.log('🔐 GarmentConfigService: 401 Unauthorized - Authentication required');
@@ -82,18 +82,18 @@ export const garmentConfigService = {
    */
   transformToSimplified: (config: GarmentConfig): SimplifiedGarmentCategory[] => {
     console.log('🔄 GarmentConfigService: Transforming config to simplified format');
-    
+
     const categories: SimplifiedGarmentCategory[] = [];
-    
+
     Object.entries(config.categories).forEach(([categoryId, category]) => {
       console.log(`📁 Processing category: ${category.name} (${categoryId})`);
-      
+
       const garmentTypes: SimplifiedGarmentType[] = [];
-      
+
       Object.entries(category.garmentTypes).forEach(([garmentTypeId, garmentType]) => {
         console.log(`👕 Processing garment type: ${garmentType.name} (${garmentTypeId})`);
         console.log(`🔍 Garment type ID: "${garmentTypeId}", Name: "${garmentType.name}"`);
-        
+
         garmentTypes.push({
           id: garmentTypeId,
           name: garmentType.name,
@@ -104,10 +104,10 @@ export const garmentConfigService = {
           pricing: garmentType.pricing,
         });
       });
-      
+
       // Sort garment types by display order
       garmentTypes.sort((a, b) => a.displayOrder - b.displayOrder);
-      
+
       categories.push({
         id: categoryId,
         name: category.name,
@@ -116,14 +116,14 @@ export const garmentConfigService = {
         garmentTypes,
       });
     });
-    
+
     // Sort categories by display order
     categories.sort((a, b) => a.displayOrder - b.displayOrder);
-    
+
     console.log('✅ GarmentConfigService: Transformation complete');
     console.log('📊 Categories count:', categories.length);
     console.log('👕 Total garment types:', categories.reduce((sum, cat) => sum + cat.garmentTypes.length, 0));
-    
+
     return categories;
   },
 
@@ -132,10 +132,10 @@ export const garmentConfigService = {
    */
   getAvailableServices: (garmentType: SimplifiedGarmentType): ServiceType[] => {
     console.log(`🔍 GarmentConfigService: Getting available services for ${garmentType.name}`);
-    
+
     const availableServices = Object.keys(garmentType.pricing) as ServiceType[];
     console.log('📋 Available services:', availableServices);
-    
+
     return availableServices;
   },
 
@@ -144,13 +144,13 @@ export const garmentConfigService = {
    */
   getServicePricing: (garmentType: SimplifiedGarmentType, serviceType: ServiceType): number | null => {
     console.log(`💰 GarmentConfigService: Getting pricing for ${garmentType.name} - ${serviceType}`);
-    
+
     const pricing = garmentType.pricing[serviceType];
     if (pricing) {
       console.log('💵 Price found:', pricing.amount, pricing.currency);
       return pricing.amount;
     }
-    
+
     console.log('❌ No pricing found for this service type');
     return null;
   },
@@ -164,9 +164,9 @@ export const garmentConfigService = {
     quantity: number;
   }>): number => {
     console.log('🧮 GarmentConfigService: Calculating total price for', garments.length, 'garments');
-    
+
     let total = 0;
-    
+
     garments.forEach((garment, index) => {
       const price = garmentConfigService.getServicePricing(garment.garmentType, garment.serviceType);
       if (price !== null) {
@@ -175,7 +175,7 @@ export const garmentConfigService = {
         console.log(`💰 Item ${index + 1}: ${garment.garmentType.name} (${garment.serviceType}) x${garment.quantity} = ${itemTotal}`);
       }
     });
-    
+
     console.log('💵 Total price calculated:', total);
     return total;
   },

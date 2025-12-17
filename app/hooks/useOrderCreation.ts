@@ -4,11 +4,11 @@
  */
 
 import { useOrderCreationStore } from '../store/orderCreationStore';
-import { 
-  CreateOrderItem, 
-  CustomerLocation, 
+import {
+  CreateOrderItem,
+  CustomerLocation,
   OrderCreationFormData,
-  OrderValidationError 
+  OrderValidationError
 } from '../types/orderCreation';
 
 export const useOrderCreation = () => {
@@ -17,7 +17,7 @@ export const useOrderCreation = () => {
   // Helper functions
   const addGarmentToOrder = (
     garmentTypeId: string,
-    serviceType: 'WASH_FOLD' | 'DRY_CLEAN' | 'HANG_DRY' | 'IRON_ONLY',
+    serviceType: 'LAUNDRY' | 'WASH_PRESS' | 'DRY_CLEAN' | 'IRON_ONLY',
     description: string,
     quantity: number,
     weightLbs: number,
@@ -25,7 +25,7 @@ export const useOrderCreation = () => {
   ) => {
     console.log('➕ useOrderCreation: Adding garment to order');
     console.log('👕 Garment:', { garmentTypeId, serviceType, description, quantity, price });
-    
+
     const item: CreateOrderItem = {
       garmentTypeId,
       serviceType,
@@ -34,7 +34,7 @@ export const useOrderCreation = () => {
       weightLbs,
       price,
     };
-    
+
     store.addItem(item);
     console.log('✅ Garment added to order');
   };
@@ -58,7 +58,7 @@ export const useOrderCreation = () => {
     console.log('📅 useOrderCreation: Setting pickup time slot');
     console.log('🕐 Start:', startTime.toISOString());
     console.log('🕐 End:', endTime.toISOString());
-    
+
     store.updateFormField('preferredPickupTimeStart', startTime);
     store.updateFormField('preferredPickupTimeEnd', endTime);
   };
@@ -67,7 +67,7 @@ export const useOrderCreation = () => {
     console.log('📅 useOrderCreation: Setting delivery time slot');
     console.log('🕐 Start:', startTime.toISOString());
     console.log('🕐 End:', endTime.toISOString());
-    
+
     store.updateFormField('preferredDeliveryTimeStart', startTime);
     store.updateFormField('preferredDeliveryTimeEnd', endTime);
   };
@@ -90,7 +90,7 @@ export const useOrderCreation = () => {
     country: string
   ) => {
     console.log('📍 useOrderCreation: Setting customer location from address');
-    
+
     const location: CustomerLocation = {
       latitude,
       longitude,
@@ -98,93 +98,93 @@ export const useOrderCreation = () => {
       city,
       country,
     };
-    
+
     store.setCustomerLocation(location);
     console.log('✅ Customer location set');
   };
 
   const getOrderSummary = () => {
     const { selectedItems, customerLocation, formData, getEstimatedTotal } = store;
-    
+
     console.log('📋 useOrderCreation: Getting order summary');
-    
+
     const summary = {
       itemsCount: selectedItems.length,
       estimatedTotal: getEstimatedTotal(),
       customerLocation: customerLocation?.description || 'Not set',
-      pickupTime: formData.preferredPickupTimeStart ? 
+      pickupTime: formData.preferredPickupTimeStart ?
         formData.preferredPickupTimeStart.toLocaleString() : 'Not set',
-      deliveryTime: formData.preferredDeliveryTimeStart ? 
+      deliveryTime: formData.preferredDeliveryTimeStart ?
         formData.preferredDeliveryTimeStart.toLocaleString() : 'Not set',
       notes: formData.notes || 'No notes',
       tags: formData.tags || [],
     };
-    
+
     console.log('📄 Order summary:', summary);
     return summary;
   };
 
   const getValidationErrors = (): string[] => {
     const { validationErrors } = store;
-    
+
     console.log('❌ useOrderCreation: Getting validation errors');
-    
+
     const errorMessages = validationErrors.map(error => error.message);
     console.log('📝 Error messages:', errorMessages);
-    
+
     return errorMessages;
   };
 
   const hasValidationErrors = (): boolean => {
     const { validationErrors } = store;
     const hasErrors = validationErrors.length > 0;
-    
+
     console.log('🔍 useOrderCreation: Has validation errors:', hasErrors);
     return hasErrors;
   };
 
   const getItemTotal = (index: number): number => {
     const { selectedItems } = store;
-    
+
     if (index >= 0 && index < selectedItems.length) {
       const item = selectedItems[index];
       const total = item.price * item.quantity;
-      
+
       console.log(`💰 Item ${index} total:`, total);
       return total;
     }
-    
+
     console.log('❌ Invalid item index:', index);
     return 0;
   };
 
   const getTotalWeight = (): number => {
     const { selectedItems } = store;
-    
+
     const totalWeight = selectedItems.reduce((sum, item) => {
       return sum + (item.weightLbs * item.quantity);
     }, 0);
-    
+
     console.log('⚖️ Total weight:', totalWeight, 'lbs');
     return totalWeight;
   };
 
   const getTotalItems = (): number => {
     const { selectedItems } = store;
-    
+
     const totalItems = selectedItems.reduce((sum, item) => {
       return sum + item.quantity;
     }, 0);
-    
+
     console.log('📦 Total items:', totalItems);
     return totalItems;
   };
 
   const isOrderReady = (): boolean => {
     const { canSubmitOrder, hasValidationErrors } = store;
-    
+
     const isReady = canSubmitOrder() && !hasValidationErrors();
-    
+
     console.log('✅ useOrderCreation: Is order ready:', isReady);
     return isReady;
   };
@@ -213,14 +213,14 @@ export const useOrderCreation = () => {
     selectedItems: store.selectedItems,
     customerLocation: store.customerLocation,
     validationErrors: store.validationErrors,
-    
+
     // Actions
     createOrder: store.createOrder,
     clearError: store.clearError,
     resetOrderCreation: store.resetOrderCreation,
     validateForm: store.validateForm,
     clearValidationErrors: store.clearValidationErrors,
-    
+
     // Helper functions
     addGarmentToOrder,
     removeGarmentFromOrder,
@@ -240,7 +240,7 @@ export const useOrderCreation = () => {
     isOrderReady,
     clearOrder,
     retryOrderCreation,
-    
+
     // Computed values
     estimatedTotal: store.getEstimatedTotal(),
     canSubmit: store.canSubmitOrder(),

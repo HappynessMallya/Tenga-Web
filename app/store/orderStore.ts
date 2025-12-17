@@ -14,9 +14,9 @@ export interface LaundryItem {
   icon: string;
   description?: string;
   pricing?: {
-    WASH_FOLD?: { amount: number; currency: string };
+    LAUNDRY?: { amount: number; currency: string };
+    WASH_PRESS?: { amount: number; currency: string };
     DRY_CLEAN?: { amount: number; currency: string };
-    HANG_DRY?: { amount: number; currency: string };
     IRON_ONLY?: { amount: number; currency: string };
   };
 }
@@ -92,7 +92,8 @@ interface OrderStore extends OrderData {
 const initialState: OrderData = {
   laundryItems: [],
   serviceTypes: [
-    { id: 'wash-fold', name: 'Wash & Fold', processingHours: 24, selected: false },
+    { id: 'laundry', name: 'Laundry', processingHours: 24, selected: false },
+    { id: 'wash-press', name: 'Wash & Press', processingHours: 36, selected: false },
     { id: 'dry-clean', name: 'Dry Cleaning', processingHours: 48, selected: false },
     { id: 'iron-only', name: 'Iron Only', processingHours: 12, selected: false },
   ],
@@ -146,35 +147,35 @@ export const useOrderStore = create<OrderStore>()(
       calculateTotal: () => {
         const { laundryItems, serviceTypes } = get();
         const selectedServices = serviceTypes.filter(service => service.selected);
-        
+
         let total = 0;
-        
+
         // Calculate laundry items total
         laundryItems.forEach(item => {
           total += item.price * item.quantity;
         });
-        
+
         // Add service processing fees (if any)
         selectedServices.forEach(service => {
           // Add any service-specific fees here
           // For now, just the base item prices
         });
-        
+
         set({ total });
       },
 
       calculateDeliveryDate: () => {
         const { pickupDate, serviceTypes } = get();
         if (!pickupDate) return;
-        
+
         const selectedServices = serviceTypes.filter(service => service.selected);
-        const maxProcessingHours = selectedServices.length > 0 
+        const maxProcessingHours = selectedServices.length > 0
           ? Math.max(...selectedServices.map(s => s.processingHours))
           : 24;
-        
+
         const deliveryDate = new Date(pickupDate);
         deliveryDate.setHours(deliveryDate.getHours() + maxProcessingHours);
-        
+
         set({ deliveryDate });
       },
 
